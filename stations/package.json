@@ -1,13 +1,17 @@
 {
-  "name": "stations",
+  "name": "@avelo/stations",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "start": "wrangler dev"
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240512.0"
+  },
+  "dependencies": {
+    "itty-router": "^5.0.17"
   }
 }

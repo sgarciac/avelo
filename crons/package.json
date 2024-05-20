@@ -1,0 +1,22 @@
+{
+	"name": "@avelo/crons",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev --test-scheduled",
+		"start": "wrangler dev --test-scheduled",
+		"cf-typegen": "wrangler types",
+		"reset-local-db": "wrangler d1 execute avelo --local --file=./schema.sql",
+		"list-local-states": "wrangler d1 execute avelo --local --command='select * from state'",
+		"reset-prod-db": "wrangler d1 execute avelo --remote --file=./schema.sql",
+		"list-prod-states": "wrangler d1 execute avelo --remote --command='select * from state'"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20240512.0"
+	},
+	"dependencies": {
+		"kysely": "^0.27.3",
+		"kysely-d1": "^0.3.0"
+	}
+}

@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "workspaces": [
-    "stations"
+    "stations",
+    "crons"
   ],
   "devDependencies": {
     "@types/node": "20.8.3",
@@ -26,5 +27,9 @@
     "avelo"
   ],
   "author": "sergio garcia",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "kysely": "^0.27.3",
+    "kysely-d1": "^0.3.0"
+  }
 }
