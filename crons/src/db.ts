@@ -4,7 +4,7 @@ import type { ColumnType } from 'kysely';
 import { Kysely } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 
-export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+export type Timestamp = ColumnType<Date | string, Date | string, Date | string>;
 
 export type Generated<T> =
 	T extends ColumnType<infer S, infer I, infer U> ? ColumnType<S, I | undefined, U> : ColumnType<T, T | undefined, T>;
@@ -15,7 +15,7 @@ export interface State {
 	station_name: string;
 	bikes: number | null;
 	free_docks: number | null;
-	timestamp: Generated<Timestamp>;
+	timestamp: string;
 	edt_minute: number;
 	edt_hour: number;
 	edt_date: number;
@@ -27,7 +27,7 @@ export interface Snapshot {
 	id: Generated<number>;
 	station_id: number | null;
 	station_name: string | null;
-	timestamp: Generated<Timestamp>;
+	timestamp: string;
 	kind: string;
 	label: string | null;
 	url: string;

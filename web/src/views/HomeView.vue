@@ -19,6 +19,7 @@ interface CurrentAvailableEntry {
   bikes?: number
   free_docks?: number
 }
+
 const stations: Ref<CurrentAvailableSnapshot | undefined> = ref({
   kind: '',
   label: '',
