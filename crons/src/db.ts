@@ -23,8 +23,19 @@ export interface State {
 	edt_year: number;
 }
 
+export interface Snapshot {
+	id: Generated<number>;
+	station_id: number | null;
+	station_name: string | null;
+	timestamp: Generated<Timestamp>;
+	kind: string;
+	label: string | null;
+	url: string;
+}
+
 export interface Database {
 	state: State;
+	snapshot: Snapshot;
 }
 
 export function getDatabase(env: Env) {

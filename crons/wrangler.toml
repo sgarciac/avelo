@@ -4,12 +4,16 @@ main = "src/index.ts"
 compatibility_date = "2024-05-12"
 
 [triggers]
-crons = ["0,5,10,15,20,25,30,35,40,45,50,55 * * * *"] # * * * * * = run every minute
+crons = ["0,5,10,15,20,25,30,35,40,45,50,55 * * * *"] # * * * * * = run every 5 minutes
 
 [[d1_databases]]
 binding = "DB" # i.e. available in your Worker on env.DB
 database_name = "avelo"
-database_id = "04f003b1-0fa3-4b58-90f4-64d8285aa5c8"
+database_id = "fd3a6715-6f7a-4faf-ba44-07df73ec1d11"
+
+[[r2_buckets]]
+binding = "SNAPSHOTS"
+bucket_name = "avelo"
 
 #[[d1_databases]]
 #binding = "DB"
@@ -34,9 +38,7 @@ database_id = "04f003b1-0fa3-4b58-90f4-64d8285aa5c8"
 
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#r2-buckets
-# [[r2_buckets]]
-# binding = "MY_BUCKET"
-# bucket_name = "my-bucket"
+
 
 # Bind another Worker service. Use this binding to call another Worker without network overhead.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings

@@ -3,22 +3,19 @@ import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <div class="wrapper">
-    <!--HelloWorld msg="You did it!" /-->
+  <div class="w-full flex flex-col items-center">
+    <div class="w-fulls">
+      <!--HelloWorld msg="You did it!" /-->
+      <nav class="tablist">
+        <RouterLink class="tab" to="/">Page d'accueil</RouterLink>&nbsp;
+        <RouterLink class="tab" to="/about">à propos</RouterLink>
+      </nav>
+    </div>
 
-    <nav>
-      <RouterLink to="/">Home</RouterLink>
-      <RouterLink to="/about">About</RouterLink>
-    </nav>
-  </div>
-
-  <div class="main-container">
-    <RouterView />
+    <div>
+      <RouterView />
+    </div>
   </div>
 </template>
 
-<style scoped>
-.main-container {
-  width: 1020px;
-}
-</style>
+<style scoped></style>

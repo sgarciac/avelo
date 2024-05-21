@@ -1,7 +1,5 @@
 <template>
-  <div>
-    <h1>This is an about page</h1>
-  </div>
+  <div>Ce site n'est pas affilié à àVélo.</div>
 </template>
 
 <style></style>
