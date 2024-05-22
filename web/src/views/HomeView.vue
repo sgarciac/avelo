@@ -206,7 +206,8 @@ onMounted(async () => {
                   }
                 }
               }"
-              :data="{ datasets: [{ data: availabilityData[station.id].bikes }] }"
+              :data="//@ts-ignore
+              { datasets: [{ data: availabilityData[station.id].bikes }] }"
             />
           </td>
           <td v-if="availabilityData[station.id] != null">
@@ -225,7 +226,8 @@ onMounted(async () => {
                   }
                 }
               }"
-              :data="{ datasets: [{ data: availabilityData[station.id].free_docks }] }"
+              :data="//@ts-ignore
+              { datasets: [{ data: availabilityData[station.id].free_docks }] }"
             />
           </td>
         </tr>
