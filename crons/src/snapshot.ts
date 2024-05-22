@@ -3,7 +3,7 @@ import { Database } from './db';
 
 export const CURRENT_AVAILABLE_R2_KEY = 'current-available.json';
 const SNAPSHOTS_ROOT_URL = 'snapshots.avelytique.gozque.com';
-export type SnapshotKind = 'CURRENT_AVAILABLE' | 'PAST_24H_STATION_AVAILABILITY';
+export type SnapshotKind = 'CURRENT_AVAILABLE' | 'PAST_24H_STATION_AVAILABILITY' | 'DAILY_STATION_AVAILABILITY';
 
 interface SnapshotInput<T> {
 	kind: SnapshotKind;
@@ -36,7 +36,7 @@ export async function makeJsonSnapsot<T>(bucket: R2Bucket, db: Kysely<Database>,
 			timestamp: input.timestamp.toISOString(),
 			data: input.data,
 			...(input.station_id != null ? { station_id: input.station_id } : {}),
-			...(input.station_name != null ? { station_id: input.station_name } : {}),
+			...(input.station_name != null ? { station_name: input.station_name } : {}),
 		}),
 		{ httpMetadata: { contentType: 'application/json' } },
 	);

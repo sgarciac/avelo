@@ -14,8 +14,11 @@
     "deploy": "npm run build && wrangler pages deploy --project-name avelytique ./dist"
   },
   "dependencies": {
+    "chart.js": "^4.4.3",
+    "chartjs-adapter-dayjs-4": "^1.0.4",
     "dayjs": "^1.11.11",
     "vue": "^3.4.21",
+    "vue-chartjs": "^5.3.1",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {

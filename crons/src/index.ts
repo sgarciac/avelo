@@ -11,7 +11,7 @@ export default {
 		// Write code for updating your API
 		switch (event.cron) {
 			case '0,5,10,15,20,25,30,35,40,45,50,55 * * * *': // every 5 minutes
-				await update_past24_hours_availability(event, env, ctx);
+				await updatePast24HoursAvailability(event, env, ctx);
 				await update_current_state(event, env, ctx);
 				break;
 		}
@@ -19,7 +19,7 @@ export default {
 	},
 };
 
-async function update_past24_hours_availability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
 	// Store snapshots of the states for all stations for the past 24 hours
 	const currentTime = new Date(); // utc, in cloudflare
 	const db = getDatabase(env);
@@ -38,7 +38,7 @@ async function update_past24_hours_availability(event: ScheduledEvent, env: Env,
 			// @ts-ignore
 			.where('timestamp', '>=', new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toISOString())
 			.orderBy('timestamp asc')
-			.selectAll()
+			.select(['bikes', 'free_docks', 'timestamp'])
 			.execute();
 		states = records.map((record) => ({ bikes: record.bikes, free_docks: record.free_docks, timestamp: record.timestamp }));
 		promises.push(
@@ -53,6 +53,62 @@ async function update_past24_hours_availability(event: ScheduledEvent, env: Env,
 				kind: 'PAST_24H_STATION_AVAILABILITY',
 			}),
 		);
+	}
+	await Promise.allSettled(promises);
+}
+
+async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+	// Store snapshots of the states for all stations for the previous day availabilities
+	const currentTime = new Date(); // utc, in cloudflare
+	const edtTime = getEdtDate(currentTime);
+	const edtYesterday = new Date(edtTime.getTime() - 24 * 60 * 60 * 1000);
+	const edtStartTime = new Date(edtYesterday);
+	const edtEndTime = new Date(edtYesterday);
+	edtStartTime.setHours(0);
+	edtStartTime.setMinutes(0);
+	edtStartTime.setSeconds(0);
+	edtEndTime.setMilliseconds(0);
+	edtEndTime.setHours(23);
+	edtEndTime.setMinutes(59);
+	edtEndTime.setSeconds(59);
+	const edtYesterdayLabel = edtYesterday.getFullYear() + '-' + (edtYesterday.getMonth() + 1) + '-' + edtYesterday.getDate();
+
+	const db = getDatabase(env);
+	let stationData = await db
+		.selectFrom('state')
+		.select(['station_id as id', 'station_name as name'])
+		.groupBy(['station_id', 'station_name'])
+		.execute();
+
+	let promises: Promise<void>[] = [];
+	for (let station of stationData) {
+		let promise = (async () => {
+			let states: { bikes: number | null; free_docks: number | null; timestamp: string }[] = [];
+			let records = await db
+				.selectFrom('state')
+				.where('station_id', '=', station.id)
+				// @ts-ignore
+				.where('timestamp', '>=', edtStartTime.toISOString())
+				.where('timestamp', '<=', edtEndTime.toISOString())
+				.orderBy('timestamp asc')
+				.select(['bikes', 'free_docks', 'timestamp'])
+				.execute();
+
+			states = records.map((record) => ({ bikes: record.bikes, free_docks: record.free_docks, timestamp: record.timestamp }));
+
+			await makeJsonSnaphsot<{ bikes: number | null; free_docks: number | null; timestamp: string }[]>(env.SNAPSHOTS, db, {
+				data: states,
+				description:
+					'Available bikes and docks for ' + edtYesterdayLabel + ' (EDT) for ' + station.name + ' ordered from oldest to most recent.',
+				key: `station-${station.id}-availability-${edtYesterdayLabel}.json`,
+				label: `station-${station.id}-availability-${edtYesterdayLabel}.json`,
+				station_id: station.id,
+				station_name: station.name,
+				timestamp: currentTime,
+				kind: 'DAILY_STATION_AVAILABILITY',
+			});
+		})();
+		promises.push(promise);
 	}
 	await Promise.allSettled(promises);
 }
