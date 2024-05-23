@@ -13,12 +13,14 @@ import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 import dayjs from 'dayjs'
 import 'dayjs/locale/fr'
 import utc from 'dayjs/plugin/utc'
+import debounce from 'lodash/debounce'
 import { Line } from 'vue-chartjs'
+
 dayjs.extend(utc)
 ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElement, Title)
 
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { computed, onMounted, ref, type Ref } from 'vue'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 
@@ -103,13 +105,30 @@ const availabilityData: Ref<{
   }
 }> = ref({})
 
+const pageSize = 10
 const filter: Ref<string> = ref('')
+const debouncedFilter: Ref<string> = ref('')
+const page: Ref<number> = ref(0)
+
+watch(
+  filter,
+  debounce(() => {
+    console.log(filter.value)
+    debouncedFilter.value = filter.value
+    page.value = 0
+  }, 250)
+)
 
 const filteredStations = computed(() => {
-  console.log(filter.value)
   return stations.value?.data.filter(
-    (station) => filter.value === '' || station.name.toLowerCase().includes(filter.value)
+    (station) =>
+      debouncedFilter.value === '' ||
+      station.name.toLowerCase().includes(debouncedFilter.value.toLowerCase())
   )
+})
+
+const currentPage = computed(() => {
+  return filteredStations.value?.slice(page.value * pageSize, page.value * pageSize + pageSize)
 })
 
 function getEdtDate(date: Date) {
@@ -178,23 +197,34 @@ onMounted(async () => {
       <input
         type="text"
         v-model="filter"
-        placeholder="Type here"
+        placeholder="Nom de la station"
         class="input input-bordered input-xs w-full max-w-xs"
       />
     </div>
-    <table class="table">
+    <div class="join mt-3" v-if="filteredStations">
+      <button
+        v-for="index in Math.ceil(filteredStations.length / pageSize)"
+        :key="index"
+        class="join-item btn btn-xs"
+        :class="{ 'btn-active': index - 1 === page }"
+        @click="page = index - 1"
+      >
+        {{ index }}
+      </button>
+    </div>
+    <table class="table w-[535px]">
       <!-- head -->
       <thead>
         <tr>
-          <th>Nom</th>
+          <th class="w-[240px]">Nom</th>
           <th>Vélos disponibles</th>
           <th>Ancrages disponibles</th>
         </tr>
       </thead>
       <tbody v-if="filteredStations != null">
         <!-- row 1 -->
-        <tr v-for="station in filteredStations" :key="station.id" class="p-1">
-          <th class="p-1">{{ station.name }}</th>
+        <tr v-for="station in currentPage" :key="station.id" class="p-1">
+          <th class="p-1 name-cell">{{ station.name }}</th>
           <td class="p-1" v-if="availabilityData[station.id] != null">
             <Line
               :style="{ height: '75px', width: '120px' }"
@@ -242,4 +272,8 @@ onMounted(async () => {
     </table>
   </div>
 </template>
-<style scoped></style>
+<style scoped>
+.name-cell {
+  height: 85px;
+}
+</style>
