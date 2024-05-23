@@ -4,7 +4,7 @@ main = "src/index.ts"
 compatibility_date = "2024-05-12"
 
 [triggers]
-crons = ["0,5,10,15,20,25,30,35,40,45,50,55 * * * *","13 8 * * *"] 
+crons = ["0,5,10,15,20,25,30,35,40,45,50,55 * * * *","03 08 * * *"] 
 
 [[d1_databases]]
 binding = "DB" # i.e. available in your Worker on env.DB

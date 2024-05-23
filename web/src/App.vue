@@ -12,10 +12,7 @@ import { RouterView } from 'vue-router'
       </nav>
     </div>
     <h1 class="mt-1">Àvelytique</h1>
-
-    <div>
-      <RouterView />
-    </div>
+    <RouterView />
   </div>
 </template>
 

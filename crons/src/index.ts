@@ -16,7 +16,7 @@ export default {
 				await updateCurrentState(event, env, ctx);
 				await updatePast24HoursAvailability(event, env, ctx);
 				break;
-			case '13 8 * * *': // once a day at 8:13 UTC
+			case '03 08 * * *': // once a day at 8:13 UTC
 				await storeYesterdayEDTAvailability(event, env, ctx);
 				break;
 		}
