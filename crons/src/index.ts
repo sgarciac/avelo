@@ -2,17 +2,22 @@
  * trigger with:
  * http://localhost:60590/__scheduled?cron=0,5,10,15,20,25,30,35,40,45,50,55+*+*+*+*
  */
-
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { getDatabase } from './db';
 import { CURRENT_AVAILABLE_R2_KEY, makeJsonSnapsot as makeJsonSnaphsot } from './snapshot';
+dayjs.extend(utc);
 
 export default {
 	async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
 		// Write code for updating your API
 		switch (event.cron) {
 			case '0,5,10,15,20,25,30,35,40,45,50,55 * * * *': // every 5 minutes
+				await updateCurrentState(event, env, ctx);
 				await updatePast24HoursAvailability(event, env, ctx);
-				await update_current_state(event, env, ctx);
+				break;
+			case '13 8 * * *': // once a day at 8:13 UTC
+				await storeYesterdayEDTAvailability(event, env, ctx);
 				break;
 		}
 		console.log('cron processed');
@@ -59,19 +64,14 @@ async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ct
 
 async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
 	// Store snapshots of the states for all stations for the previous day availabilities
-	const currentTime = new Date(); // utc, in cloudflare
-	const edtTime = getEdtDate(currentTime);
-	const edtYesterday = new Date(edtTime.getTime() - 24 * 60 * 60 * 1000);
-	const edtStartTime = new Date(edtYesterday);
-	const edtEndTime = new Date(edtYesterday);
-	edtStartTime.setHours(0);
-	edtStartTime.setMinutes(0);
-	edtStartTime.setSeconds(0);
-	edtEndTime.setMilliseconds(0);
-	edtEndTime.setHours(23);
-	edtEndTime.setMinutes(59);
-	edtEndTime.setSeconds(59);
-	const edtYesterdayLabel = edtYesterday.getFullYear() + '-' + (edtYesterday.getMonth() + 1) + '-' + edtYesterday.getDate();
+	const currentTime = dayjs().utcOffset(-4);
+	const yesterday = currentTime.subtract(1, 'day');
+	let edtStartTime = yesterday.startOf('day');
+	let edtEndTime = yesterday.endOf('day');
+
+	const edtYesterdayLabel = yesterday.format('YYYY-MM-DD');
+	//	console.log(edtStartTime.toISOString(), edtEndTime.toISOString());
+	//	console.log(edtYesterdayLabel);
 
 	const db = getDatabase(env);
 	let stationData = await db
@@ -84,18 +84,17 @@ async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ct
 	for (let station of stationData) {
 		let promise = (async () => {
 			let states: { bikes: number | null; free_docks: number | null; timestamp: string }[] = [];
-			let records = await db
+			let recordsQuery = db
 				.selectFrom('state')
 				.where('station_id', '=', station.id)
 				// @ts-ignore
 				.where('timestamp', '>=', edtStartTime.toISOString())
 				.where('timestamp', '<=', edtEndTime.toISOString())
 				.orderBy('timestamp asc')
-				.select(['bikes', 'free_docks', 'timestamp'])
-				.execute();
+				.select(['bikes', 'free_docks', 'timestamp']);
+			const records = await recordsQuery.execute();
 
 			states = records.map((record) => ({ bikes: record.bikes, free_docks: record.free_docks, timestamp: record.timestamp }));
-
 			await makeJsonSnaphsot<{ bikes: number | null; free_docks: number | null; timestamp: string }[]>(env.SNAPSHOTS, db, {
 				data: states,
 				description:
@@ -104,7 +103,7 @@ async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ct
 				label: `station-${station.id}-availability-${edtYesterdayLabel}.json`,
 				station_id: station.id,
 				station_name: station.name,
-				timestamp: currentTime,
+				timestamp: currentTime.toDate(),
 				kind: 'DAILY_STATION_AVAILABILITY',
 			});
 		})();
@@ -113,7 +112,7 @@ async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ct
 	await Promise.allSettled(promises);
 }
 
-async function update_current_state(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
 	console.log('Updating current state');
 	const currentState = await (
 		await env.STATIONS_CURRENT.fetch(new Request('http://127.0.0.1/current'))
@@ -127,7 +126,14 @@ async function update_current_state(event: ScheduledEvent, env: Env, ctx: Execut
 			}[]
 		>();
 	const currentTime = new Date(); // utc, in cloudflare
-	const edtTime = getEdtDate(currentTime);
+	const currentEdtTimeHelper = dayjs(currentTime).utc().subtract(4, 'hour');
+	const [edt_minute, edt_hour, edt_date, edt_month, edt_year] = [
+		currentEdtTimeHelper.minute(),
+		currentEdtTimeHelper.hour(),
+		currentEdtTimeHelper.date(),
+		currentEdtTimeHelper.month(),
+		currentEdtTimeHelper.year(),
+	];
 	const db = getDatabase(env);
 	const stations: { name: string; id: number; bikes: number | null; free_docks: number | null }[] = [];
 
@@ -140,15 +146,15 @@ async function update_current_state(event: ScheduledEvent, env: Env, ctx: Execut
 				bikes: station.bikes,
 				free_docks: station.free_docks,
 				timestamp: currentTime.toISOString(),
-				edt_minute: edtTime.getMinutes(),
-				edt_hour: edtTime.getHours(),
-				edt_date: edtTime.getDate(),
-				edt_month: edtTime.getMonth(),
-				edt_year: edtTime.getFullYear(),
+				edt_minute,
+				edt_hour,
+				edt_date,
+				edt_month,
+				edt_year,
 			})
 			.execute();
 		stations.push({ name: station.name, id: station.id, bikes: station.bikes, free_docks: station.free_docks });
-		console.log(station.name);
+		//console.log(station.name);
 	}
 
 	// Store the current state as a snapshot
@@ -162,9 +168,4 @@ async function update_current_state(event: ScheduledEvent, env: Env, ctx: Execut
 		timestamp: currentTime,
 		kind: 'CURRENT_AVAILABLE',
 	});
-}
-
-function getEdtDate(date: Date) {
-	var utc = date.getTime() + date.getTimezoneOffset() * 60000;
-	return new Date(utc - 4 * 60 * 60 * 1000);
 }

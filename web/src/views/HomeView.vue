@@ -20,24 +20,6 @@ import { onMounted, ref, type Ref } from 'vue'
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 
-const chartData: any = {
-  datasets: [
-    {
-      data: [
-        { x: '2024-05-22T12:57:42Z', y: 10 },
-        { x: '2024-05-22T13:57:42Z', y: 5 },
-        { x: '2024-05-22T14:57:42Z', y: 7 },
-        { x: '2024-05-22T14:58:42Z', y: 10 },
-        { x: '2024-05-22T14:59:42Z', y: 5 },
-        { x: '2024-05-22T14:59:43Z', y: 7 },
-        { x: '2024-05-22T18:57:42Z', y: 10 },
-        { x: '2024-05-22T19:57:42Z', y: 5 },
-        { x: '2024-05-22T20:57:43Z', y: 7 }
-      ]
-    }
-  ]
-}
-
 const chartOptions: ChartOptions<'line'> = {
   responsive: false,
   elements: {
@@ -56,7 +38,10 @@ const chartOptions: ChartOptions<'line'> = {
         display: false
       },
       ticks: {
-        display: false
+        display: true,
+        font: {
+          size: 8
+        }
       }
     },
     y: {
@@ -64,7 +49,8 @@ const chartOptions: ChartOptions<'line'> = {
         display: false
       },
       ticks: {
-        display: false
+        display: true,
+        font: { size: 8 }
       }
     }
   }
@@ -188,17 +174,18 @@ onMounted(async () => {
       </thead>
       <tbody v-if="stations != null">
         <!-- row 1 -->
-        <tr v-for="station in stations.data" :key="station.id">
-          <th>{{ station.name }}</th>
-          <td v-if="availabilityData[station.id] != null">
+        <tr v-for="station in stations.data" :key="station.id" class="p-1">
+          <th class="p-1">{{ station.name }}</th>
+          <td class="p-1" v-if="availabilityData[station.id] != null">
             <Line
-              :style="{ height: '50px', width: '100px' }"
+              :style="{ height: '75px', width: '120px' }"
               :id="'docks-availability-chart-' + station.id"
               :title="`Ancrages disponibles ajourd'hui (${station.name})`"
               :options="{
                 ...chartOptions,
                 plugins: {
                   title: {
+                    align: 'end',
                     display: true,
                     text: station.bikes?.toString(),
                     color: station.bikes != null && station.bikes > 2 ? 'gray' : 'red',
@@ -210,15 +197,16 @@ onMounted(async () => {
               { datasets: [{ data: availabilityData[station.id].bikes }] }"
             />
           </td>
-          <td v-if="availabilityData[station.id] != null">
+          <td class="p-1" v-if="availabilityData[station.id] != null">
             <Line
-              :style="{ height: '50px', width: '100px' }"
+              :style="{ height: '75px', width: '120px' }"
               :id="'bikes-availability-chart-' + station.id"
               :title="`Vélos disponibles ajourd'hui (${station.name})`"
               :options="{
                 ...chartOptions,
                 plugins: {
                   title: {
+                    align: 'end',
                     display: true,
                     text: station.free_docks?.toString(),
                     color: station.free_docks != null && station.free_docks > 2 ? 'gray' : 'red',
