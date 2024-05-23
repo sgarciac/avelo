@@ -12,11 +12,13 @@ import {
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 import dayjs from 'dayjs'
 import 'dayjs/locale/fr'
+import utc from 'dayjs/plugin/utc'
 import { Line } from 'vue-chartjs'
+dayjs.extend(utc)
 ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElement, Title)
 
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { onMounted, ref, type Ref } from 'vue'
+import { computed, onMounted, ref, type Ref } from 'vue'
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 
@@ -45,6 +47,8 @@ const chartOptions: ChartOptions<'line'> = {
       }
     },
     y: {
+      min: 0,
+      suggestedMax: 20,
       grid: {
         display: false
       },
@@ -98,6 +102,15 @@ const availabilityData: Ref<{
     free_docks: { x: string; y: number | null }[]
   }
 }> = ref({})
+
+const filter: Ref<string> = ref('')
+
+const filteredStations = computed(() => {
+  console.log(filter.value)
+  return stations.value?.data.filter(
+    (station) => filter.value === '' || station.name.toLowerCase().includes(filter.value)
+  )
+})
 
 function getEdtDate(date: Date) {
   var utc = date.getTime() + date.getTimezoneOffset() * 60000
@@ -153,7 +166,6 @@ onMounted(async () => {
       }
     }
   }
-  console.log(availabilityData.value)
 })
 </script>
 
@@ -162,7 +174,14 @@ onMounted(async () => {
     <div v-if="stations != null" class="prose-sm">
       Dernière actualisation {{ dayjs(stations.timestamp).fromNow() }}
     </div>
-
+    <div class="mt-2">
+      <input
+        type="text"
+        v-model="filter"
+        placeholder="Type here"
+        class="input input-bordered input-xs w-full max-w-xs"
+      />
+    </div>
     <table class="table">
       <!-- head -->
       <thead>
@@ -172,15 +191,15 @@ onMounted(async () => {
           <th>Ancrages disponibles</th>
         </tr>
       </thead>
-      <tbody v-if="stations != null">
+      <tbody v-if="filteredStations != null">
         <!-- row 1 -->
-        <tr v-for="station in stations.data" :key="station.id" class="p-1">
+        <tr v-for="station in filteredStations" :key="station.id" class="p-1">
           <th class="p-1">{{ station.name }}</th>
           <td class="p-1" v-if="availabilityData[station.id] != null">
             <Line
               :style="{ height: '75px', width: '120px' }"
-              :id="'docks-availability-chart-' + station.id"
-              :title="`Ancrages disponibles ajourd'hui (${station.name})`"
+              :id="'bikes-availability-chart-' + station.id"
+              :title="`Vélos disponibles ajourd'hui (${station.name})`"
               :options="{
                 ...chartOptions,
                 plugins: {
@@ -200,8 +219,8 @@ onMounted(async () => {
           <td class="p-1" v-if="availabilityData[station.id] != null">
             <Line
               :style="{ height: '75px', width: '120px' }"
-              :id="'bikes-availability-chart-' + station.id"
-              :title="`Vélos disponibles ajourd'hui (${station.name})`"
+              :id="'docks-availability-chart-' + station.id"
+              :title="`Ancrages disponibles ajourd'hui (${station.name})`"
               :options="{
                 ...chartOptions,
                 plugins: {
