@@ -15,15 +15,18 @@ export class WorkerB extends WorkerEntrypoint {
 async function current(): Promise<Response> {
   let id: string | null = "";
   let name: string = "";
-  let free_docks: string = "";
-  let bikes: string = "";
+  let geocoordinatesString: any;
   let stations: {
     id: number;
     bikes: number;
     free_docks: number;
     name: string;
+    lat?: number;
+    long?: number;
   }[] = [];
   const response = await fetch("https://aveloquebec.ca/stations/");
+  // instead of all of this, we could instead use '<input type='hidden' id='icon_txt' value=....', that seems to contain the JSON data
+  // for availability
   const rewriter = new HTMLRewriter()
     .on('ul[id="infoWind"] > li', {
       element(el) {
@@ -32,37 +35,25 @@ async function current(): Promise<Response> {
           stations.push({
             id: parseInt(id || ""),
             name: name.trim(),
-            free_docks: parseInt(free_docks.trim()),
-            bikes: parseInt(bikes.trim()),
+            bikes: 0,
+            free_docks: 0,
           });
           name = "";
-          free_docks = "";
-          bikes = "";
         });
       },
     })
     .on('ul[id="infoWind"] > li > div.infoAdd > h5', {
-      text(txt) {
+      text(txt: any) {
         name = name + txt.text;
       },
     })
-    .on(
-      'ul[id="infoWind"] > li > div.availability > div.infotxt:nth-child(1) > strong',
-      {
-        text(txt) {
-          bikes = bikes + txt.text;
-        },
-      }
-    )
-    .on(
-      'ul[id="infoWind"] > li > div.availability > div.infotxt:nth-child(2) > strong',
-      {
-        text(txt) {
-          free_docks = free_docks + txt.text;
-        },
-      }
-    );
+    .on('input[name="arr_adr"]', {
+      element(el) {
+        geocoordinatesString = el.getAttribute("value");
+      },
+    });
   await consume(rewriter.transform(response).body!);
+
   return Response.json(stations);
 }
 
