@@ -21,6 +21,7 @@ ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElemen
 
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
+import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 
@@ -62,35 +63,6 @@ const chartOptions: ChartOptions<'line'> = {
   }
 }
 
-interface CurrentAvailableSnapshot {
-  kind: string
-  label: string
-  timestamp: string
-  data: CurrentAvailableEntry[]
-}
-
-interface CurrentAvailableEntry {
-  name: string
-  id: number
-  bikes: number | null
-  free_docks: number | null
-}
-
-interface Past24HoursSnapshot {
-  kind: string
-  label: string
-  timestamp: string
-  data: AvailabilityEntryPoint[]
-  station_id: number
-  station_name: string
-}
-
-interface AvailabilityEntryPoint {
-  bikes: number | null
-  free_docks: number | null
-  timestamp: string
-}
-
 const stations: Ref<CurrentAvailableSnapshot | undefined> = ref({
   kind: '',
   label: '',
@@ -109,6 +81,9 @@ const pageSize = 10
 const filter: Ref<string> = ref('')
 const debouncedFilter: Ref<string> = ref('')
 const page: Ref<number> = ref(0)
+const pageCount = computed(() =>
+  filteredStations.value == null ? 0 : Math.ceil(filteredStations.value?.length / pageSize)
+)
 
 watch(
   filter,
@@ -116,7 +91,7 @@ watch(
     console.log(filter.value)
     debouncedFilter.value = filter.value
     page.value = 0
-  }, 250)
+  }, 300)
 )
 
 const filteredStations = computed(() => {
@@ -201,8 +176,17 @@ onMounted(async () => {
         class="input input-bordered input-xs w-full max-w-xs"
       />
     </div>
-    <div class="join mt-3" v-if="filteredStations">
+    <div class="join mt-3" v-if="pageCount > 1">
+      <button class="join-item btn btn-xs" @click="page = page - 1" :disabled="page == 0">«</button>
+      <button class="join-item btn btn-xs">Page {{ page + 1 }} de {{ pageCount }}</button>
       <button
+        class="join-item btn btn-xs"
+        @click="page = page + 1"
+        :disabled="page >= pageCount - 1"
+      >
+        »
+      </button>
+      <!--button
         v-for="index in Math.ceil(filteredStations.length / pageSize)"
         :key="index"
         class="join-item btn btn-xs"
@@ -210,13 +194,13 @@ onMounted(async () => {
         @click="page = index - 1"
       >
         {{ index }}
-      </button>
+      </button!-->
     </div>
-    <table class="table w-[535px]">
+    <table class="table lg:w-[635px]">
       <!-- head -->
       <thead>
         <tr>
-          <th class="w-[240px]">Nom</th>
+          <th class="lg:w-[340px]">Nom</th>
           <th>Vélos disponibles</th>
           <th>Ancrages disponibles</th>
         </tr>
@@ -224,7 +208,10 @@ onMounted(async () => {
       <tbody v-if="filteredStations != null">
         <!-- row 1 -->
         <tr v-for="station in currentPage" :key="station.id" class="p-1">
-          <th class="p-1 name-cell">{{ station.name }}</th>
+          <th class="p-1 name-cell">
+            <RouterLink class="tab" :to="`/station/${station.id}`">{{ station.name }}</RouterLink
+            >&nbsp;
+          </th>
           <td class="p-1" v-if="availabilityData[station.id] != null">
             <Line
               :style="{ height: '75px', width: '120px' }"
