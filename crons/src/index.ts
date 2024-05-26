@@ -123,6 +123,8 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 				bikes: number;
 				free_docks: number;
 				name: string;
+				lat: number;
+				long: number;
 			}[]
 		>();
 	const currentTime = new Date(); // utc, in cloudflare
@@ -135,7 +137,7 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 		currentEdtTimeHelper.year(),
 	];
 	const db = getDatabase(env);
-	const stations: { name: string; id: number; bikes: number | null; free_docks: number | null }[] = [];
+	const stations: { name: string; id: number; bikes: number | null; free_docks: number | null; lat: number; long: number }[] = [];
 
 	for (const station of currentState) {
 		await db
@@ -153,7 +155,14 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 				edt_year,
 			})
 			.execute();
-		stations.push({ name: station.name, id: station.id, bikes: station.bikes, free_docks: station.free_docks });
+		stations.push({
+			name: station.name,
+			id: station.id,
+			bikes: station.bikes,
+			free_docks: station.free_docks,
+			lat: station.lat,
+			long: station.long,
+		});
 		//console.log(station.name);
 	}
 

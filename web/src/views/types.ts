@@ -10,6 +10,8 @@ export interface CurrentAvailableEntry {
   id: number
   bikes: number | null
   free_docks: number | null
+  lat: number
+  long: number
 }
 
 export interface Past24HoursSnapshot {

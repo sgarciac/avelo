@@ -25,6 +25,8 @@ import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 
+const supportsGeolocation = 'geolocation' in navigator
+
 const chartOptions: ChartOptions<'line'> = {
   responsive: false,
   elements: {
@@ -77,13 +79,19 @@ const availabilityData: Ref<{
   }
 }> = ref({})
 
-const pageSize = 10
+const pageSize = 5
+const sortByDistance = ref(false)
+sortByDistance.value = localStorage.getItem('sortByDistance') === 'true'
+
+const latitude: Ref<number | null> = ref(null)
+const longitude: Ref<number | null> = ref(null)
 const filter: Ref<string> = ref('')
 const debouncedFilter: Ref<string> = ref('')
 const page: Ref<number> = ref(0)
 const pageCount = computed(() =>
   filteredStations.value == null ? 0 : Math.ceil(filteredStations.value?.length / pageSize)
 )
+const distanceMap: Ref<{ [stationId: number]: number }> = ref({})
 
 watch(
   filter,
@@ -102,8 +110,35 @@ const filteredStations = computed(() => {
   )
 })
 
+const filteredAndSortedStations = computed(() => {
+  if (filteredStations.value != null) {
+    const copy = [...filteredStations.value]
+    if (
+      sortByDistance.value &&
+      latitude.value != null &&
+      longitude.value != null &&
+      distanceMap.value
+    ) {
+      return copy.sort((a, b) => {
+        return distanceMap.value[a.id] - distanceMap.value[b.id]
+      })
+    } else {
+      return copy.sort((a, b) => {
+        if (a.name === b.name) return 0
+        if (a.name < b.name) return -1
+        return 1
+      })
+    }
+  } else {
+    return null
+  }
+})
+
 const currentPage = computed(() => {
-  return filteredStations.value?.slice(page.value * pageSize, page.value * pageSize + pageSize)
+  return filteredAndSortedStations.value?.slice(
+    page.value * pageSize,
+    page.value * pageSize + pageSize
+  )
 })
 
 function getEdtDate(date: Date) {
@@ -160,42 +195,85 @@ onMounted(async () => {
       }
     }
   }
+
+  watch(sortByDistance, async () => {
+    if (sortByDistance.value) {
+      localStorage.setItem('sortByDistance', 'true')
+      navigator.geolocation.getCurrentPosition((position) => {
+        latitude.value = position.coords.latitude
+        longitude.value = position.coords.longitude
+        setDistanceMap()
+        page.value = 0
+      })
+    } else {
+      localStorage.removeItem('sortByDistance')
+      latitude.value = null
+      longitude.value = null
+      page.value = 0
+    }
+  })
 })
+
+// degrees to radians
+const dtr = (deg: number) => (deg * Math.PI) / 180.0
+
+// distance in kms
+function calculateDistance(lat1: number, long1: number, lat2: number, long2: number): number {
+  return (
+    Math.acos(
+      Math.sin(dtr(lat1)) * Math.sin(dtr(lat2)) +
+        Math.cos(dtr(lat1)) * Math.cos(dtr(lat2)) * Math.cos(dtr(long2) - dtr(long1))
+    ) * 6371
+  )
+}
+
+async function setDistanceMap(): Promise<void> {
+  distanceMap.value = {}
+  let distances: { [stationId: number]: number } = {}
+  console.log(latitude.value, longitude.value)
+  if (latitude.value != null && longitude.value != null) {
+    for (const station of stations.value!.data) {
+      distances[station.id] = await calculateDistance(
+        latitude.value,
+        longitude.value,
+        station.lat,
+        station.long
+      )
+    }
+    distanceMap.value = distances
+    console.log(distanceMap.value)
+  }
+}
+
+if (sortByDistance.value) {
+  navigator.geolocation.getCurrentPosition((position) => {
+    latitude.value = position.coords.latitude
+    longitude.value = position.coords.longitude
+    setDistanceMap()
+  })
+}
 </script>
 
 <template>
   <div class="flex flex-col items-center">
-    <div v-if="stations != null" class="prose-sm">
-      Dernière actualisation {{ dayjs(stations.timestamp).fromNow() }}
-    </div>
-    <div class="mt-2">
+    <div class="mt-2 flex flex-col items-center">
       <input
         type="text"
         v-model="filter"
         placeholder="Nom de la station"
         class="input input-bordered input-xs w-full max-w-xs"
       />
+      <label class="label cursor-pointer w-full max-w-xs">
+        <input type="checkbox" v-model="sortByDistance" class="toggle toggle-xs" />
+        <span class="label-text prose-sm text-xs ml-3"
+          >Montrer les stations les plus proches en premier</span
+        >
+      </label>
     </div>
-    <div class="join mt-3" v-if="pageCount > 1">
-      <button class="join-item btn btn-xs" @click="page = page - 1" :disabled="page == 0">«</button>
-      <button class="join-item btn btn-xs">Page {{ page + 1 }} de {{ pageCount }}</button>
-      <button
-        class="join-item btn btn-xs"
-        @click="page = page + 1"
-        :disabled="page >= pageCount - 1"
-      >
-        »
-      </button>
-      <!--button
-        v-for="index in Math.ceil(filteredStations.length / pageSize)"
-        :key="index"
-        class="join-item btn btn-xs"
-        :class="{ 'btn-active': index - 1 === page }"
-        @click="page = index - 1"
-      >
-        {{ index }}
-      </button!-->
-    </div>
+
+    <!--div v-if="supportsGeolocation" class="self-start"-->
+    <!--/div-->
+
     <table class="table lg:w-[635px]">
       <!-- head -->
       <thead>
@@ -257,6 +335,20 @@ onMounted(async () => {
         </tr>
       </tbody>
     </table>
+    <div class="join mt-3" v-if="pageCount > 1">
+      <button class="join-item btn btn-xs" @click="page = page - 1" :disabled="page == 0">«</button>
+      <button class="join-item btn btn-xs">Page {{ page + 1 }} de {{ pageCount }}</button>
+      <button
+        class="join-item btn btn-xs"
+        @click="page = page + 1"
+        :disabled="page >= pageCount - 1"
+      >
+        »
+      </button>
+    </div>
+    <div v-if="stations != null" class="prose-sm text-xs mt-2">
+      Dernière actualisation {{ dayjs(stations.timestamp).fromNow() }}
+    </div>
   </div>
 </template>
 <style scoped>
