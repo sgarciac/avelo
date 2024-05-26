@@ -89,48 +89,41 @@ const filter: Ref<string> = ref('')
 const debouncedFilter: Ref<string> = ref('')
 const page: Ref<number> = ref(0)
 const pageCount = computed(() =>
-  filteredStations.value == null ? 0 : Math.ceil(filteredStations.value?.length / pageSize)
+  stations.value == null ? 0 : Math.ceil(stations.value?.data.length / pageSize)
 )
 const distanceMap: Ref<{ [stationId: number]: number }> = ref({})
 
 watch(
   filter,
   debounce(() => {
-    console.log(filter.value)
     debouncedFilter.value = filter.value
     page.value = 0
   }, 300)
 )
 
-const filteredStations = computed(() => {
-  return stations.value?.data.filter(
-    (station) =>
-      debouncedFilter.value === '' ||
-      station.name.toLowerCase().includes(debouncedFilter.value.toLowerCase())
-  )
-})
-
 const filteredAndSortedStations = computed(() => {
-  if (filteredStations.value != null) {
-    const copy = [...filteredStations.value]
-    if (
-      sortByDistance.value &&
-      latitude.value != null &&
-      longitude.value != null &&
-      distanceMap.value
-    ) {
-      return copy.sort((a, b) => {
-        return distanceMap.value[a.id] - distanceMap.value[b.id]
-      })
-    } else {
-      return copy.sort((a, b) => {
-        if (a.name === b.name) return 0
-        if (a.name < b.name) return -1
-        return 1
-      })
-    }
+  if (stations.value == null) return null
+  let filteredStations = stations.value.data.filter(
+    (station) =>
+      availabilityData.value[station.id] != null &&
+      (debouncedFilter.value === '' ||
+        station.name.toLowerCase().includes(debouncedFilter.value.toLowerCase()))
+  )
+  if (
+    sortByDistance.value &&
+    latitude.value != null &&
+    longitude.value != null &&
+    distanceMap.value
+  ) {
+    return filteredStations.sort((a, b) => {
+      return distanceMap.value[a.id] - distanceMap.value[b.id]
+    })
   } else {
-    return null
+    return filteredStations.sort((a, b) => {
+      if (a.name === b.name) return 0
+      if (a.name < b.name) return -1
+      return 1
+    })
   }
 })
 
@@ -160,13 +153,20 @@ onMounted(async () => {
   }
   let responses = await Promise.allSettled(promises)
 
+  let availabilityDataTemporal: {
+    [stationId: number]: {
+      bikes: { x: string; y: number | null }[]
+      free_docks: { x: string; y: number | null }[]
+    }
+  } = {}
+
   for (const response of responses) {
     if (response.status === 'fulfilled') {
       let currentTimeEdt = getEdtDate(new Date())
       if (response.value.status === 200) {
         const body: Past24HoursSnapshot = await response.value.json()
         if (body.data.length > 0 && body.data[0].bikes != null && body.data[0].free_docks != null) {
-          availabilityData.value[body.station_id] = {
+          availabilityDataTemporal[body.station_id] = {
             bikes: body.data
               .filter((entry, i) => {
                 // reduce the number of points to one per 15 minutes, except for the last half hour
@@ -195,6 +195,8 @@ onMounted(async () => {
       }
     }
   }
+
+  availabilityData.value = availabilityDataTemporal
 
   watch(sortByDistance, async () => {
     if (sortByDistance.value) {
@@ -230,7 +232,6 @@ function calculateDistance(lat1: number, long1: number, lat2: number, long2: num
 async function setDistanceMap(): Promise<void> {
   distanceMap.value = {}
   let distances: { [stationId: number]: number } = {}
-  console.log(latitude.value, longitude.value)
   if (latitude.value != null && longitude.value != null) {
     for (const station of stations.value!.data) {
       distances[station.id] = await calculateDistance(
@@ -241,7 +242,6 @@ async function setDistanceMap(): Promise<void> {
       )
     }
     distanceMap.value = distances
-    console.log(distanceMap.value)
   }
 }
 
@@ -263,7 +263,7 @@ if (sortByDistance.value) {
         placeholder="Nom de la station"
         class="input input-bordered input-xs w-full max-w-xs"
       />
-      <label class="label cursor-pointer w-full max-w-xs">
+      <label class="label cursor-pointer w-full max-w-xs" v-if="supportsGeolocation">
         <input type="checkbox" v-model="sortByDistance" class="toggle toggle-xs" />
         <span class="label-text prose-sm text-xs ml-3"
           >Montrer les stations les plus proches en premier</span
@@ -283,7 +283,7 @@ if (sortByDistance.value) {
           <th>Ancrages disponibles</th>
         </tr>
       </thead>
-      <tbody v-if="filteredStations != null">
+      <tbody v-if="currentPage != null">
         <!-- row 1 -->
         <tr v-for="station in currentPage" :key="station.id" class="p-1">
           <th class="p-1 name-cell overflow-hidden">
