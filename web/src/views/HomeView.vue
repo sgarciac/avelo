@@ -286,8 +286,10 @@ if (sortByDistance.value) {
       <tbody v-if="filteredStations != null">
         <!-- row 1 -->
         <tr v-for="station in currentPage" :key="station.id" class="p-1">
-          <th class="p-1 name-cell">
-            <RouterLink class="tab" :to="`/station/${station.id}`">{{ station.name }}</RouterLink
+          <th class="p-1 name-cell overflow-hidden">
+            <RouterLink class="tab text-xs" :to="`/station/${station.id}`">{{
+              station.name
+            }}</RouterLink
             >&nbsp;
           </th>
           <td class="p-1" v-if="availabilityData[station.id] != null">
