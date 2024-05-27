@@ -8,6 +8,10 @@
     :options="{
       ...chartOptions,
       plugins: {
+        colors: {
+          enabled: true,
+          forceOverride: true
+        },
         title: {
           align: 'center',
           display: true,
@@ -18,10 +22,12 @@
     }"
     :data="{
       //@ts-ignore
-      datasets: [...selectedAvailabilities].map((label) => ({
-        label: label === 'current' ? 'Actuellement' : label,
-        data: availabilities[label].bikes
-      }))
+      datasets: selectedAvailabilitiesArray
+        .filter((label) => availabilities[label])
+        .map((label) => ({
+          label: label === 'current' ? 'Actuellement' : label,
+          data: availabilities[label].bikes
+        }))
     }"
   />
 
@@ -33,6 +39,10 @@
     :options="{
       ...chartOptions,
       plugins: {
+        colors: {
+          enabled: true,
+          forceOverride: true
+        },
         title: {
           align: 'center',
           display: true,
@@ -44,10 +54,12 @@
     class="mt-10"
     :data="{
       //@ts-ignore
-      datasets: [...selectedAvailabilities].map((label) => ({
-        label: label === 'current' ? 'Actuellement' : label,
-        data: availabilities[label].free_docks
-      }))
+      datasets: selectedAvailabilitiesArray
+        .filter((label) => availabilities[label])
+        .map((label) => ({
+          label: label === 'current' ? 'Actuellement' : label,
+          data: availabilities[label].free_docks
+        }))
     }"
   />
 
@@ -92,7 +104,7 @@ import {
   LinearScale,
   PointElement,
   TimeScale,
-  Title,
+  // Title,
   Tooltip,
   type ChartOptions
 } from 'chart.js'
@@ -106,8 +118,8 @@ ChartJS.register(
   PointElement,
   LineElement,
   Tooltip,
-  Legend,
-  Title
+  Legend
+  // Title
 )
 
 import dayjs from 'dayjs'
@@ -116,21 +128,16 @@ import timezone from 'dayjs/plugin/timezone'
 import weekday from 'dayjs/plugin/weekday'
 
 import utc from 'dayjs/plugin/utc'
-import { onMounted, ref, watch, type Ref } from 'vue'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import type { CurrentAvailableEntry, CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.extend(weekday)
+dayjs.locale('fr')
 
 const chartOptions: ChartOptions<'line'> = {
   responsive: true,
-  plugins: {
-    colors: {
-      enabled: true,
-      forceOverride: true
-    }
-  },
   elements: {
     point: {
       radius: 0
@@ -208,18 +215,15 @@ const labels: string[] = [
   'current',
   ...dates.map((date) => dayjs(date).tz('America/Montreal').format('YYYY-MM-DD'))
 ]
-const dayNames = ['Dimanche', 'Samedi', 'Vendredi', 'Jeudi', 'Mercredi', 'Mardi', 'Lundi']
+const dayNames = ['Samedi', 'Vendredi', 'Jeudi', 'Mercredi', 'Mardi', 'Lundi', 'Dimanche']
 const dayHeaders: string[] = []
+console.log(dayjs.tz(new Date(), 'America/Montreal').utc().weekday())
 for (let i = 0; i < 7; i++) {
-  dayHeaders.push(
-    dayNames[(i + dayjs.tz(dates[0], 'America/Montreal').weekday()) % 7]
-    /*   dayNames[
-      (i + dayjs(dayjs.tz(dates[0], 'America/Montreal').format('YYYY-MM-DDT12:00:00')).weekday()) %
-        7
-    ]*/
-  )
+  dayHeaders.push(dayNames[(i + dayjs.tz(dates[0], 'America/Montreal').weekday()) % 7])
 }
 const selectedAvailabilities: Ref<Set<string>> = ref(new Set(['current']))
+
+const selectedAvailabilitiesArray = computed(() => Array.from(selectedAvailabilities.value))
 
 const availabilities: Ref<{
   [label: string]: {
@@ -230,6 +234,12 @@ const availabilities: Ref<{
 
 async function syncData(newVal: Set<string>) {
   let currentTimeEdt = getEdtDate(new Date())
+  const newAvailabilities: {
+    [label: string]: {
+      bikes: { x: string; y: number | null }[]
+      free_docks: { x: string; y: number | null }[]
+    }
+  } = {}
 
   for (const label of labels) {
     if (newVal.has(label) && stationInfo.value && availabilities.value[label] === undefined) {
@@ -238,7 +248,7 @@ async function syncData(newVal: Set<string>) {
           `https://snapshots.avelytique.gozque.com/past-24h-station-${stationInfo.value.id}-availability.json`
         )
         const body: Past24HoursSnapshot = await response.json()
-        availabilities.value[label] = {
+        newAvailabilities[label] = {
           bikes: body.data
             .filter((entry, i) => {
               let tsEdt = getEdtDate(new Date(entry.timestamp))
@@ -261,7 +271,7 @@ async function syncData(newVal: Set<string>) {
         )
         const body: Past24HoursSnapshot = await response.json()
 
-        availabilities.value[label] = {
+        newAvailabilities[label] = {
           bikes: body.data.map((entry) => ({
             x: moveToToday(new Date(entry.timestamp), label).toISOString(),
             y: entry.bikes
@@ -273,15 +283,16 @@ async function syncData(newVal: Set<string>) {
         }
       }
     } else {
-      if (!newVal.has(label)) {
-        delete availabilities.value[label]
+      if (newVal.has(label) && availabilities.value[label]) {
+        newAvailabilities[label] = availabilities.value[label]
       }
     }
   }
+  availabilities.value = newAvailabilities
 }
 
 watch(selectedAvailabilities, async (newVal) => {
-  syncData(newVal)
+  await syncData(newVal)
 })
 
 async function setupForStation(id: number) {
@@ -301,6 +312,7 @@ watch(
 onMounted(async () => {
   await setupForStation(Number(route.params.id))
   await syncData(selectedAvailabilities.value)
+  console.log('mounted', dayjs.tz(new Date(), 'America/Montreal').utc().weekday())
 })
 </script>
 <style></style>

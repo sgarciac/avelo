@@ -28,7 +28,7 @@
     "avelo"
   ],
   "author": "sergio garcia",
-  "license": "ISC",
+  "license": "GPL 3.0",
   "dependencies": {
     "kysely": "^0.27.3",
     "kysely-d1": "^0.3.0"
