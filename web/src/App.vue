@@ -4,11 +4,12 @@ import { RouterView } from 'vue-router'
 
 <template>
   <div class="w-full flex flex-col items-center">
-    <div class="w-fulls">
+    <div class="w-full flex flex-row justify-around">
       <!--HelloWorld msg="You did it!" /-->
       <nav class="tablist">
         <RouterLink class="tab link link-primary" to="/">Page d'accueil</RouterLink>&nbsp;
         <RouterLink class="tab link link-primary" to="/about">À propos</RouterLink>
+        <RouterLink class="tab link link-primary" to="/data">Données</RouterLink>
       </nav>
     </div>
     <h2 class="mt-1">Àvélytique</h2>

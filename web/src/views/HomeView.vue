@@ -5,6 +5,7 @@ import {
   LinearScale,
   PointElement,
   TimeScale,
+  Title,
   type ChartOptions
 } from 'chart.js'
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
@@ -20,7 +21,7 @@ import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
 
 dayjs.extend(utc)
 //ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElement, Title)
-ChartJS.register(TimeScale, PointElement, LinearScale, LineElement)
+ChartJS.register(TimeScale, Title, PointElement, LinearScale, LineElement)
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 

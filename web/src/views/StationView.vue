@@ -1,6 +1,5 @@
 <template>
   <h3 v-if="stationInfo">{{ stationInfo.name }}</h3>
-
   <Line
     v-if="stationInfo && availabilities"
     :style="{ height: '220px', width: '500px' }"
@@ -52,29 +51,33 @@
     }"
   />
 
-  <div class="flex flex-col">
-    <label class="label cursor-pointer">
-      <span class="label-text">Actuellement</span>
-      <input
-        type="checkbox"
-        id="current"
-        value="current"
-        v-model="selectedAvailabilities"
-        class="checkbox checkbox-sm ml-3"
-      />
-    </label>
-  </div>
-  <div class="flex flex-row">
+  <label class="label cursor-pointer">
+    <span class="label-text text-sm">Actuellement</span>
+    <input
+      type="checkbox"
+      id="current"
+      value="current"
+      v-model="selectedAvailabilities"
+      class="checkbox checkbox-sm ml-3"
+    />
+  </label>
+  <div class="grid grid-cols-7 mt-2">
+    <template v-for="dayHeader in dayHeaders" :key="dayHeader">
+      <div class="text-sm flex justify-center bg-slate-200 min-w-[90px] mb-2">
+        {{ dayHeader }}
+      </div>
+    </template>
+
     <template v-for="label in labels" :key="label">
-      <label class="label cursor-pointer" v-if="label !== 'current'">
-        <span class="label-text">{{ label }}</span>
+      <label class="flex items-center flex-col cursor-pointer" v-if="label !== 'current'">
         <input
           type="checkbox"
           :id="label"
           :value="label"
           v-model="selectedAvailabilities"
-          class="checkbox checkbox-sm ml-3"
+          class="checkbox checkbox-xs"
         />
+        <span class="label-text text-xs mb-2">{{ dayjs(label).format('MM-DD') }}</span>
       </label>
     </template>
   </div>
@@ -108,9 +111,17 @@ ChartJS.register(
 )
 
 import dayjs from 'dayjs'
+import 'dayjs/locale/fr'
+import timezone from 'dayjs/plugin/timezone'
+import weekday from 'dayjs/plugin/weekday'
+
+import utc from 'dayjs/plugin/utc'
 import { onMounted, ref, watch, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import type { CurrentAvailableEntry, CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
+dayjs.extend(utc)
+dayjs.extend(timezone)
+dayjs.extend(weekday)
 
 const chartOptions: ChartOptions<'line'> = {
   responsive: true,
@@ -127,6 +138,8 @@ const chartOptions: ChartOptions<'line'> = {
   },
   scales: {
     x: {
+      //@ts-ignore
+      max: toTodayEdtEndOfDay().toISOString(),
       type: 'time',
       grid: {
         display: false
@@ -160,12 +173,16 @@ function getEdtDate(date: Date) {
   return new Date(utc - 4 * 60 * 60 * 1000)
 }
 
-function toTodayEdt(date: Date) {
-  var currentEdt = getEdtDate(new Date())
-  date.setDate(currentEdt.getDate())
-  date.setMonth(currentEdt.getMonth())
-  date.setFullYear(currentEdt.getFullYear())
-  return date
+// Move the window to today
+function moveToToday(date: Date, day: string) {
+  const days = dayjs(day).diff(dayjs(dayjs(getEdtDate(new Date())).format('YYYY-MM-DD')), 'days')
+  return dayjs(date).subtract(days, 'days').toDate()
+}
+
+function toTodayEdtEndOfDay() {
+  return dayjs
+    .tz(dayjs(getEdtDate(new Date())).format('YYYY-MM-DDT23:59:59'), 'America/Montreal')
+    .toDate()
 }
 
 function addDays(origin: Date, days: number) {
@@ -184,15 +201,24 @@ function getDates(startDate: Date, stopDate: Date) {
   return dateArray
 }
 const dates = getDates(
-  new Date('2024-05-21T12:00:00'),
-  getEdtDate(new Date(new Date().getTime() - 26 * 60 * 60 * 1000))
-)
-
+  new Date('2024-05-21T04:01:00Z'),
+  new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
+).reverse()
 const labels: string[] = [
   'current',
-  ...dates.map((date) => dayjs(date).format('YYYY-MM-DD')).reverse()
+  ...dates.map((date) => dayjs(date).tz('America/Montreal').format('YYYY-MM-DD'))
 ]
-
+const dayNames = ['Dimanche', 'Samedi', 'Vendredi', 'Jeudi', 'Mercredi', 'Mardi', 'Lundi']
+const dayHeaders: string[] = []
+for (let i = 0; i < 7; i++) {
+  dayHeaders.push(
+    dayNames[(i + dayjs.tz(dates[0], 'America/Montreal').weekday()) % 7]
+    /*   dayNames[
+      (i + dayjs(dayjs.tz(dates[0], 'America/Montreal').format('YYYY-MM-DDT12:00:00')).weekday()) %
+        7
+    ]*/
+  )
+}
 const selectedAvailabilities: Ref<Set<string>> = ref(new Set(['current']))
 
 const availabilities: Ref<{
@@ -237,11 +263,11 @@ async function syncData(newVal: Set<string>) {
 
         availabilities.value[label] = {
           bikes: body.data.map((entry) => ({
-            x: toTodayEdt(new Date(entry.timestamp)).toISOString(),
+            x: moveToToday(new Date(entry.timestamp), label).toISOString(),
             y: entry.bikes
           })),
           free_docks: body.data.map((entry) => ({
-            x: toTodayEdt(new Date(entry.timestamp)).toISOString(),
+            x: moveToToday(new Date(entry.timestamp), label).toISOString(),
             y: entry.free_docks
           }))
         }
@@ -252,7 +278,6 @@ async function syncData(newVal: Set<string>) {
       }
     }
   }
-  console.log(availabilities.value)
 }
 
 watch(selectedAvailabilities, async (newVal) => {
