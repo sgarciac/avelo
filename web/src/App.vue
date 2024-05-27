@@ -7,11 +7,11 @@ import { RouterView } from 'vue-router'
     <div class="w-fulls">
       <!--HelloWorld msg="You did it!" /-->
       <nav class="tablist">
-        <RouterLink class="tab" to="/">Page d'accueil</RouterLink>&nbsp;
-        <RouterLink class="tab" to="/about">à propos</RouterLink>
+        <RouterLink class="tab link link-primary" to="/">Page d'accueil</RouterLink>&nbsp;
+        <RouterLink class="tab link link-primary" to="/about">À propos</RouterLink>
       </nav>
     </div>
-    <h2 class="mt-1">Àvelytique</h2>
+    <h2 class="mt-1">Àvélytique</h2>
     <RouterView />
   </div>
 </template>

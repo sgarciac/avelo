@@ -1,27 +1,26 @@
 <script setup lang="ts">
 import {
-  CategoryScale,
   Chart as ChartJS,
   LineElement,
   LinearScale,
   PointElement,
   TimeScale,
-  Title,
   type ChartOptions
 } from 'chart.js'
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 import dayjs from 'dayjs'
 import 'dayjs/locale/fr'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
 import debounce from 'lodash/debounce'
+import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { Line } from 'vue-chartjs'
+import { useRoute } from 'vue-router'
+import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
 
 dayjs.extend(utc)
-ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElement, Title)
-
-import relativeTime from 'dayjs/plugin/relativeTime'
-import { computed, onMounted, ref, watch, type Ref } from 'vue'
-import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
+//ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElement, Title)
+ChartJS.register(TimeScale, PointElement, LinearScale, LineElement)
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
 
@@ -101,6 +100,10 @@ watch(
   }, 300)
 )
 
+const route = useRoute()
+watch(route, () => {
+  console.log('route changed')
+})
 const filteredAndSortedStations = computed(() => {
   if (stations.value == null) return null
   let filteredStations = stations.value.data.filter(
@@ -140,6 +143,10 @@ function getEdtDate(date: Date) {
 }
 
 onMounted(async () => {
+  await initSetup()
+})
+
+async function initSetup() {
   stations.value = await (
     await fetch('https://snapshots.avelytique.gozque.com/current-available.json')
   ).json()
@@ -214,7 +221,15 @@ onMounted(async () => {
       page.value = 0
     }
   })
-})
+
+  if (sortByDistance.value) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      latitude.value = position.coords.latitude
+      longitude.value = position.coords.longitude
+      setDistanceMap()
+    })
+  }
+}
 
 // degrees to radians
 const dtr = (deg: number) => (deg * Math.PI) / 180.0
@@ -243,14 +258,6 @@ async function setDistanceMap(): Promise<void> {
     }
     distanceMap.value = distances
   }
-}
-
-if (sortByDistance.value) {
-  navigator.geolocation.getCurrentPosition((position) => {
-    latitude.value = position.coords.latitude
-    longitude.value = position.coords.longitude
-    setDistanceMap()
-  })
 }
 </script>
 
@@ -287,7 +294,7 @@ if (sortByDistance.value) {
         <!-- row 1 -->
         <tr v-for="station in currentPage" :key="station.id" class="p-1">
           <th class="p-1 name-cell overflow-hidden">
-            <RouterLink class="tab text-xs" :to="`/station/${station.id}`">{{
+            <RouterLink class="tab text-xs link link-primary" :to="`/station/${station.id}`">{{
               station.name
             }}</RouterLink
             >&nbsp;
@@ -300,6 +307,9 @@ if (sortByDistance.value) {
               :options="{
                 ...chartOptions,
                 plugins: {
+                  legend: {
+                    display: false
+                  },
                   title: {
                     align: 'end',
                     display: true,
@@ -321,6 +331,9 @@ if (sortByDistance.value) {
               :options="{
                 ...chartOptions,
                 plugins: {
+                  legend: {
+                    display: false
+                  },
                   title: {
                     align: 'end',
                     display: true,
