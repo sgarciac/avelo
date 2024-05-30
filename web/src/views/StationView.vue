@@ -75,7 +75,17 @@
   </label>
   <div class="grid grid-cols-7 mt-2">
     <template v-for="dayHeader in dayHeaders" :key="dayHeader">
-      <div class="text-sm flex justify-center bg-slate-200 min-w-[90px] mb-2">
+      <div
+        :class="{
+          'text-sm': true,
+          flex: true,
+          'justify-center': true,
+          'bg-slate-200': getTodayEdtDayLabel() !== dayHeader,
+          'bg-slate-400': getTodayEdtDayLabel() === dayHeader,
+          'min-w-[90px]': true,
+          'mb-2': true
+        }"
+      >
         {{ dayHeader }}
       </div>
     </template>
@@ -180,6 +190,11 @@ function getEdtDate(date: Date) {
   return new Date(utc - 4 * 60 * 60 * 1000)
 }
 
+function getTodayEdtDayLabel() {
+  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+  return dayNames[dayjs(getEdtDate(new Date())).weekday() % 7]
+}
+
 // Move the window to today
 function moveToToday(date: Date, day: string) {
   const days = dayjs(day).diff(dayjs(dayjs(getEdtDate(new Date())).format('YYYY-MM-DD')), 'days')
@@ -215,11 +230,10 @@ const labels: string[] = [
   'current',
   ...dates.map((date) => dayjs(date).tz('America/Montreal').format('YYYY-MM-DD'))
 ]
-const dayNames = ['Samedi', 'Vendredi', 'Jeudi', 'Mercredi', 'Mardi', 'Lundi', 'Dimanche']
+const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const dayHeaders: string[] = []
-console.log(dayjs.tz(new Date(), 'America/Montreal').utc().weekday())
 for (let i = 0; i < 7; i++) {
-  dayHeaders.push(dayNames[(i + dayjs.tz(dates[0], 'America/Montreal').weekday()) % 7])
+  dayHeaders.push(dayNames[dayjs.tz(dates[i], 'America/Montreal').weekday() % 7])
 }
 const selectedAvailabilities: Ref<Set<string>> = ref(new Set(['current']))
 
@@ -312,7 +326,6 @@ watch(
 onMounted(async () => {
   await setupForStation(Number(route.params.id))
   await syncData(selectedAvailabilities.value)
-  console.log('mounted', dayjs.tz(new Date(), 'America/Montreal').utc().weekday())
 })
 </script>
 <style></style>
