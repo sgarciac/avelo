@@ -8,3 +8,55 @@
   padding: 2rem;
   font-weight: normal;
 }*/
+
+body {
+  min-height: 100vh;
+  margin: 0;
+}
+
+footer {
+  min-height: 100%;
+}
+
+/* The article fills all the space between header & footer */
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+.background {
+  background: linear-gradient(112.1deg, rgb(32, 38, 57) 11.4%, rgb(63, 76, 119) 70.2%);
+}
+
+footer a {
+  color: white;
+}
+
+a,
+.tab {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+footer {
+  z-index: 0;
+}
+
+footer a.tab {
+  color: white;
+  text-decoration: none;
+}
+
+footer a.tab:hover {
+  transition: all 0.3s ease-in-out;
+  color: rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
+}

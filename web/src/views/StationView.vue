@@ -1,115 +1,121 @@
 <template>
-  <h3 v-if="stationInfo">{{ stationInfo.name }}</h3>
-  <div class="form-control w-52">
-    <label class="cursor-pointer label">
-      <span class="label-text">{{ favorite ? 'Ajouté aux favoris' : 'Ajouter aux favoris' }}</span>
-      <input type="checkbox" v-model="favorite" class="toggle toggle-primary toggle-sm" />
-    </label>
-  </div>
-  <Line
-    v-if="stationInfo && availabilities"
-    :style="{ height: '220px', width: '500px' }"
-    :id="'bikes-availability-chart-' + stationInfo.id"
-    :title="`Vélos disponibles ajourd'hui (${stationInfo.name})`"
-    :options="{
-      ...chartOptions,
-      plugins: {
-        colors: {
-          enabled: true,
-          forceOverride: true
-        },
-        title: {
-          align: 'center',
-          display: true,
-          text: `Vélos disponibles (${stationInfo.bikes})`,
-          padding: { top: 0, bottom: 0 }
-        }
-      }
-    }"
-    :data="{
-      //@ts-ignore
-      datasets: selectedAvailabilitiesArray
-        .filter((label) => availabilities[label])
-        .map((label) => ({
-          label: label === 'current' ? 'Actuellement' : label,
-          data: availabilities[label].bikes
-        }))
-    }"
-  />
-
-  <Line
-    v-if="stationInfo && availabilities"
-    :style="{ height: '220px', width: '500px' }"
-    :id="'bikes-availability-chart-' + stationInfo.id"
-    :title="`Ancrages disponibles (${stationInfo.name})`"
-    :options="{
-      ...chartOptions,
-      plugins: {
-        colors: {
-          enabled: true,
-          forceOverride: true
-        },
-        title: {
-          align: 'center',
-          display: true,
-          text: `Ancrages disponibles (${stationInfo.free_docks})`,
-          padding: { top: 0, bottom: 0 }
-        }
-      }
-    }"
-    class="mt-10"
-    :data="{
-      //@ts-ignore
-      datasets: selectedAvailabilitiesArray
-        .filter((label) => availabilities[label])
-        .map((label) => ({
-          label: label === 'current' ? 'Actuellement' : label,
-          data: availabilities[label].free_docks
-        }))
-    }"
-  />
-
-  <label class="label cursor-pointer">
-    <span class="label-text text-sm">Actuellement</span>
-    <input
-      type="checkbox"
-      id="current"
-      value="current"
-      v-model="selectedAvailabilities"
-      class="checkbox checkbox-sm ml-3"
-    />
-  </label>
-  <div class="grid grid-cols-7 mt-2">
-    <template v-for="dayHeader in dayHeaders" :key="dayHeader">
-      <div
-        :class="[
-          'text-sm',
-          'flex',
-          'justify-center',
-          'mb-2',
-          'min-w-[90px]',
-          {
-            'bg-slate-200': getTodayEdtDayLabel() !== dayHeader,
-            'bg-slate-400': getTodayEdtDayLabel() === dayHeader
-          }
-        ]"
-      >
-        {{ dayHeader }}
+  <div class="w-full flex flex-col items-center">
+    <div class="w-full prose my-auto">
+      <h3 v-if="stationInfo">{{ stationInfo.name }}</h3>
+      <div class="form-control w-52">
+        <label class="cursor-pointer label">
+          <span class="label-text">{{
+            favorite ? 'Ajouté aux favoris' : 'Ajouter aux favoris'
+          }}</span>
+          <input type="checkbox" v-model="favorite" class="toggle toggle-primary toggle-sm" />
+        </label>
       </div>
-    </template>
+      <Line
+        v-if="stationInfo && availabilities"
+        :style="{ height: '220px', width: '500px' }"
+        :id="'bikes-availability-chart-' + stationInfo.id"
+        :title="`Vélos disponibles ajourd'hui (${stationInfo.name})`"
+        :options="{
+          ...chartOptions,
+          plugins: {
+            colors: {
+              enabled: true,
+              forceOverride: true
+            },
+            title: {
+              align: 'center',
+              display: true,
+              text: `Vélos disponibles (${stationInfo.bikes})`,
+              padding: { top: 0, bottom: 0 }
+            }
+          }
+        }"
+        :data="{
+          //@ts-ignore
+          datasets: selectedAvailabilitiesArray
+            .filter((label) => availabilities[label])
+            .map((label) => ({
+              label: label === 'current' ? 'Actuellement' : label,
+              data: availabilities[label].bikes
+            }))
+        }"
+      />
 
-    <template v-for="label in labels" :key="label">
-      <label class="flex items-center flex-col cursor-pointer" v-if="label !== 'current'">
+      <Line
+        v-if="stationInfo && availabilities"
+        :style="{ height: '220px', width: '500px' }"
+        :id="'bikes-availability-chart-' + stationInfo.id"
+        :title="`Ancrages disponibles (${stationInfo.name})`"
+        :options="{
+          ...chartOptions,
+          plugins: {
+            colors: {
+              enabled: true,
+              forceOverride: true
+            },
+            title: {
+              align: 'center',
+              display: true,
+              text: `Ancrages disponibles (${stationInfo.free_docks})`,
+              padding: { top: 0, bottom: 0 }
+            }
+          }
+        }"
+        class="mt-10"
+        :data="{
+          //@ts-ignore
+          datasets: selectedAvailabilitiesArray
+            .filter((label) => availabilities[label])
+            .map((label) => ({
+              label: label === 'current' ? 'Actuellement' : label,
+              data: availabilities[label].free_docks
+            }))
+        }"
+      />
+
+      <label class="label cursor-pointer">
+        <span class="label-text text-sm">Actuellement</span>
         <input
           type="checkbox"
-          :id="label"
-          :value="label"
+          id="current"
+          value="current"
           v-model="selectedAvailabilities"
-          class="checkbox checkbox-xs"
+          class="checkbox checkbox-sm ml-3"
         />
-        <span class="label-text text-xs mb-2">{{ dayjs(label).format('MM-DD') }}</span>
       </label>
-    </template>
+      <div class="grid grid-cols-7 mt-2">
+        <template v-for="dayHeader in dayHeaders" :key="dayHeader">
+          <div
+            :class="[
+              'text-sm',
+              'flex',
+              'justify-center',
+              'mb-2',
+              'min-w-[90px]',
+              {
+                'bg-slate-200': getTodayEdtDayLabel() !== dayHeader,
+                'bg-slate-400': getTodayEdtDayLabel() === dayHeader
+              }
+            ]"
+          >
+            {{ dayHeader }}
+          </div>
+        </template>
+
+        <template v-for="label in labels" :key="label">
+          <label class="flex items-center flex-col cursor-pointer" v-if="label !== 'current'">
+            <input
+              type="checkbox"
+              :id="label"
+              :value="label"
+              v-model="selectedAvailabilities"
+              class="checkbox checkbox-xs"
+            />
+            <span class="label-text text-xs mb-2">{{ dayjs(label).format('MM-DD') }}</span>
+          </label>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
