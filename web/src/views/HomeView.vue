@@ -16,14 +16,12 @@ import utc from 'dayjs/plugin/utc'
 import debounce from 'lodash/debounce'
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { Line } from 'vue-chartjs'
-import { useRoute } from 'vue-router'
+import { initPersistedBoolean, initPersistedSet } from './storage'
 import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
-
 dayjs.extend(utc)
-//ChartJS.register(CategoryScale, LinearScale, TimeScale, PointElement, LineElement, Title)
-ChartJS.register(TimeScale, Title, PointElement, LinearScale, LineElement)
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
+ChartJS.register(TimeScale, Title, PointElement, LinearScale, LineElement)
 
 const supportsGeolocation = 'geolocation' in navigator
 
@@ -65,6 +63,7 @@ const chartOptions: ChartOptions<'line'> = {
   }
 }
 
+// The list of all stations with the current availabilities
 const stations: Ref<CurrentAvailableSnapshot | undefined> = ref({
   kind: '',
   label: '',
@@ -72,6 +71,8 @@ const stations: Ref<CurrentAvailableSnapshot | undefined> = ref({
   data: []
 })
 
+// The availability data for each station for the last 24 hours,
+// already processed as a list of points for the chart
 const availabilityData: Ref<{
   [stationId: number]: {
     bikes: { x: string; y: number | null }[]
@@ -80,8 +81,10 @@ const availabilityData: Ref<{
 }> = ref({})
 
 const pageSize = 5
-const sortByDistance = ref(false)
-sortByDistance.value = localStorage.getItem('sortByDistance') === 'true'
+const favorites = initPersistedSet('favorites')
+
+const sortByDistance = initPersistedBoolean('sortByDistance')
+const favoritesOnly = initPersistedBoolean('favoritesOnly')
 
 const latitude: Ref<number | null> = ref(null)
 const longitude: Ref<number | null> = ref(null)
@@ -89,7 +92,9 @@ const filter: Ref<string> = ref('')
 const debouncedFilter: Ref<string> = ref('')
 const page: Ref<number> = ref(0)
 const pageCount = computed(() =>
-  stations.value == null ? 0 : Math.ceil(stations.value?.data.length / pageSize)
+  filteredAndSortedStations.value == null
+    ? 0
+    : Math.ceil(filteredAndSortedStations.value.length / pageSize)
 )
 const distanceMap: Ref<{ [stationId: number]: number }> = ref({})
 
@@ -101,15 +106,12 @@ watch(
   }, 300)
 )
 
-const route = useRoute()
-watch(route, () => {
-  console.log('route changed')
-})
 const filteredAndSortedStations = computed(() => {
   if (stations.value == null) return null
   let filteredStations = stations.value.data.filter(
     (station) =>
-      availabilityData.value[station.id] != null &&
+      availabilityData.value[station.id]?.bikes != null &&
+      (!favoritesOnly.value || favorites.has(station.id)) &&
       (debouncedFilter.value === '' ||
         station.name.toLowerCase().includes(debouncedFilter.value.toLowerCase()))
   )
@@ -208,7 +210,6 @@ async function initSetup() {
 
   watch(sortByDistance, async () => {
     if (sortByDistance.value) {
-      localStorage.setItem('sortByDistance', 'true')
       navigator.geolocation.getCurrentPosition((position) => {
         latitude.value = position.coords.latitude
         longitude.value = position.coords.longitude
@@ -216,7 +217,6 @@ async function initSetup() {
         page.value = 0
       })
     } else {
-      localStorage.removeItem('sortByDistance')
       latitude.value = null
       longitude.value = null
       page.value = 0
@@ -264,17 +264,23 @@ async function setDistanceMap(): Promise<void> {
 
 <template>
   <div class="flex flex-col items-center">
-    <div class="mt-2 flex flex-col items-center">
+    <div class="mt-2 flex flex-col items-start">
       <input
         type="text"
         v-model="filter"
         placeholder="Nom de la station"
         class="input input-bordered input-xs w-full max-w-xs"
       />
-      <label class="label cursor-pointer w-full max-w-xs" v-if="supportsGeolocation">
+      <label class="label cursor-pointer" v-if="supportsGeolocation">
         <input type="checkbox" v-model="sortByDistance" class="toggle toggle-xs" />
         <span class="label-text prose-sm text-xs ml-3"
           >Montrer les stations les plus proches en premier</span
+        >
+      </label>
+      <label class="label cursor-pointer" v-if="favorites && favorites.size > 0">
+        <input type="checkbox" v-model="favoritesOnly" class="toggle toggle-xs" />
+        <span class="label-text prose-sm text-xs ml-3"
+          >Montrer seulement les stations favorites</span
         >
       </label>
     </div>
@@ -372,3 +378,4 @@ async function setDistanceMap(): Promise<void> {
   height: 85px;
 }
 </style>
+./storage

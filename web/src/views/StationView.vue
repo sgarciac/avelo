@@ -1,5 +1,11 @@
 <template>
   <h3 v-if="stationInfo">{{ stationInfo.name }}</h3>
+  <div class="form-control w-52">
+    <label class="cursor-pointer label">
+      <span class="label-text">{{ favorite ? 'Ajouté aux favoris' : 'Ajouter aux favoris' }}</span>
+      <input type="checkbox" v-model="favorite" class="toggle toggle-primary toggle-sm" />
+    </label>
+  </div>
   <Line
     v-if="stationInfo && availabilities"
     :style="{ height: '220px', width: '500px' }"
@@ -76,15 +82,17 @@
   <div class="grid grid-cols-7 mt-2">
     <template v-for="dayHeader in dayHeaders" :key="dayHeader">
       <div
-        :class="{
-          'text-sm': true,
-          flex: true,
-          'justify-center': true,
-          'bg-slate-200': getTodayEdtDayLabel() !== dayHeader,
-          'bg-slate-400': getTodayEdtDayLabel() === dayHeader,
-          'min-w-[90px]': true,
-          'mb-2': true
-        }"
+        :class="[
+          'text-sm',
+          'flex',
+          'justify-center',
+          'mb-2',
+          'min-w-[90px]',
+          {
+            'bg-slate-200': getTodayEdtDayLabel() !== dayHeader,
+            'bg-slate-400': getTodayEdtDayLabel() === dayHeader
+          }
+        ]"
       >
         {{ dayHeader }}
       </div>
@@ -120,6 +128,7 @@ import {
 } from 'chart.js'
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 import { Line } from 'vue-chartjs'
+import { bindItemToPersistedSet, initPersistedSet } from './storage'
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -184,6 +193,8 @@ const chartOptions: ChartOptions<'line'> = {
 
 const route = useRoute()
 const stationInfo: Ref<CurrentAvailableEntry | null> = ref(null)
+const favorites = initPersistedSet('favorites')
+const favorite: Ref<boolean> = ref(false)
 
 function getEdtDate(date: Date) {
   var utc = date.getTime() + date.getTimezoneOffset() * 60000
@@ -314,6 +325,7 @@ async function setupForStation(id: number) {
     await fetch('https://snapshots.avelytique.gozque.com/current-available.json')
   ).json()
   stationInfo.value = currentAvailabilitySnapshot.data.find((entry) => entry.id === id) || null
+  bindItemToPersistedSet(id, favorite, favorites)
 }
 
 watch(
