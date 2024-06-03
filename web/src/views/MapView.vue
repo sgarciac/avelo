@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { LMap, LMarker, LPopup, LTileLayer, LTooltip } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { LMap, LMarker, LTileLayer, LTooltip, LPopup } from '@vue-leaflet/vue-leaflet'
 import { Bike, CandlestickChart } from 'lucide-vue-next'
-import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import type { CurrentAvailableSnapshot } from './types'
 const zoom = ref(13)
 const center = ref([46.8, -71.25])
@@ -26,7 +26,7 @@ interface Marker {
 
 const markers = ref<Marker[]>()
 
-const titleURL = 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png'
+const titleURL = 'https://{s}.osm.gozque.com/{z}/{x}/{y}.png'
 // const titleURL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 async function initSetup() {

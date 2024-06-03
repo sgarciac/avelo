@@ -1,0 +1,10 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "avelo-osm-cache"
+main = "src/index.ts"
+compatibility_date = "2024-05-29"
+compatibility_flags = ["nodejs_compat"]
+
+[[r2_buckets]]
+binding = "OSM_CACHE"
+bucket_name = "avelo"
+

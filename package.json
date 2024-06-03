@@ -9,7 +9,8 @@
   "workspaces": [
     "stations",
     "crons",
-    "web"
+    "web",
+    "osm-cache"
   ],
   "devDependencies": {
     "@types/node": "20.8.3",
