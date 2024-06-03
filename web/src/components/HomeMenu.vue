@@ -2,7 +2,7 @@
 import { LayoutList, MapPin } from 'lucide-vue-next'
 </script>
 <template>
-  <menu class="inline-block mb-8">
+  <menu class="inline-block mb-4">
     <li class="inline mr-3">
       <RouterLink class="no-underline hover:opacity-70" to="/">
         <LayoutList class="inline align-text-bottom" color="black" :size="16" :stroke-width="1" />

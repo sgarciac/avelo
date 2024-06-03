@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { LMap, LMarker, LPopup, LTileLayer, LTooltip } from '@vue-leaflet/vue-leaflet'
+import { LIcon, LMap, LMarker, LPopup, LTileLayer, LTooltip } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Bike, CandlestickChart } from 'lucide-vue-next'
-import type { Ref } from 'vue'
+import { Bike, ParkingCircle } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import type { Ref } from 'vue'
 import type { CurrentAvailableSnapshot } from './types'
 const zoom = ref(13)
 const center = ref([46.8, -71.25])
@@ -22,12 +22,20 @@ interface Marker {
   bikes: Number | null
   freeDocks: Number | null
   url: string
+  stationUrl: string
 }
 
 const markers = ref<Marker[]>()
-
 const titleURL = 'https://{s}.osm.gozque.com/{z}/{x}/{y}.png'
-// const titleURL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+const markerUrl = (bikes: number | null, freeDocks: number | null): string => {
+  const percent =
+    !bikes || freeDocks === null
+      ? 0
+      : Math.floor(Math.round(((bikes / (bikes + freeDocks)) * 100) / 10) * 10)
+
+  return `src/assets/markers/marker-${percent}.svg`
+}
 
 async function initSetup() {
   stations.value = await (
@@ -41,7 +49,8 @@ async function initSetup() {
       latLong: [station.lat, station.long],
       bikes: station.bikes,
       freeDocks: station.free_docks,
-      url: `/station/${station.id}`
+      url: markerUrl(station.bikes, station.free_docks),
+      stationUrl: `/station/${station.id}`
     })) || []
 }
 
@@ -53,37 +62,43 @@ onMounted(async () => {
   <l-map
     ref="map"
     v-model:zoom="zoom"
-    class="w-full min-h-[600px]"
+    class="leaflet-map w-full"
     :center="center"
     :use-global-leaflet="false"
   >
     <l-tile-layer :url="titleURL" layer-type="base" name="OpenStreetMap"></l-tile-layer>
     <l-marker
       v-for="marker in markers"
+      class="marker"
       :key="marker.title"
       :lat-lng="marker.latLong"
       :title="marker.title"
-      autoPan
     >
+      <l-icon
+        :icon-url="marker.url"
+        :icon-size="[42, 42]"
+        :icon-anchor="[32, 42]"
+        :popup-anchor="[0, -42]"
+      />
       <l-tooltip>{{ marker.title }}</l-tooltip>
       <l-popup>
-        <h1>
-          <RouterLink :to="marker.url">{{ marker.title }}</RouterLink>
+        <h1 class="text-lg mb-3 text-center">
+          <RouterLink :to="marker.stationUrl">{{ marker.title }}</RouterLink>
         </h1>
-        <div class="flex columns w-[200px] gap-3">
-          <div>
-            <Bike class="inline align-text-top pb-1" color="black" :size="48" :stroke-width="2" />
-            <h2>{{ marker.bikes }}</h2>
-            <p>Vélos disponibles</p>
+        <div class="flex columns gap-3">
+          <div class="basis-[50%] text-center">
+            <Bike class="inline align-text-top pb-1" color="black" :size="40" :stroke-width="2" />
+            <h2 class="text-xl font-bold color-[#374167]">{{ marker.bikes }}</h2>
+            <p>Vélos<br />disponibles</p>
           </div>
-          <div>
-            <CandlestickChart
+          <div class="basis-[50%] text-center">
+            <ParkingCircle
               class="inline align-text-top pb-1"
               color="black"
-              :size="48"
+              :size="40"
               :stroke-width="2"
             />
-            <h2>{{ marker.freeDocks }}</h2>
+            <h2 class="text-xl font-bold color-[#374167]">{{ marker.freeDocks }}</h2>
             <p>Ancrages disponibles</p>
           </div>
         </div>
@@ -91,3 +106,24 @@ onMounted(async () => {
     </l-marker>
   </l-map>
 </template>
+<style scoped>
+.leaflet-map {
+  min-height: 500px;
+}
+
+@media (min-device-height: 1000px) {
+  .leaflet-map {
+    min-height: 700px;
+  }
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  font-size: 24px;
+  top: 3px;
+  right: 5px;
+}
+
+.leaflet-popup-content p {
+  margin: 0.6rem;
+}
+</style>

@@ -20,7 +20,7 @@ import HomeMenu from './components/HomeMenu.vue'
   </div>
   <RouterView />
 
-  <footer class="w-full flex flex-col items-center mt-8 py-4 bg-[#374167]">
+  <footer class="w-full flex flex-col items-center py-4 bg-[#374167]">
     <div class="w-full flex flex-row justify-around">
       <!--HelloWorld msg="You did it!" /-->
       <nav class="tablist">

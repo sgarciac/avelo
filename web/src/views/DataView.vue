@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col items-center">
+  <div class="w-full flex flex-col items-center mb-4">
     <div class="w-full prose my-auto">
       <h3>Disponibilités actuelles (toutes les stations)</h3>
       <p>
