@@ -34,7 +34,7 @@ const markerUrl = (bikes: number | null, freeDocks: number | null): string => {
       ? 0
       : Math.floor(Math.round(((bikes / (bikes + freeDocks)) * 100) / 10) * 10)
 
-  return `src/assets/markers/marker-${percent}.svg`
+  return `markers/marker-${percent}.svg`
 }
 
 async function initSetup() {
