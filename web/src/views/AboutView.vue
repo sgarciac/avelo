@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col items-center">
+  <div class="w-full flex flex-col items-center mb-4">
     <div class="w-full prose my-auto p-1">
       <p>Ce site n'est pas affilié à àVélo.</p>
       <p>

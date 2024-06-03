@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col items-center">
+  <div class="w-full flex flex-col items-center mb-4">
     <div class="w-full prose my-auto">
       <h3 v-if="stationInfo">{{ stationInfo.name }}</h3>
       <div class="form-control w-52">

@@ -263,7 +263,7 @@ async function setDistanceMap(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-col items-center">
+  <div class="flex flex-col items-center mb-4">
     <div class="mt-2 flex flex-col items-start">
       <input
         type="text"
