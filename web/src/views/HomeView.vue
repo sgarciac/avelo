@@ -17,7 +17,7 @@ import debounce from 'lodash/debounce'
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { Line } from 'vue-chartjs'
 import { initPersistedBoolean, initPersistedSet } from './storage'
-import type { CurrentAvailableSnapshot, Past24HoursSnapshot } from './types'
+import type { CurrentAvailableSnapshot } from './types'
 dayjs.extend(utc)
 dayjs.extend(relativeTime)
 dayjs.locale('fr')
@@ -153,15 +153,14 @@ async function initSetup() {
   stations.value = await (
     await fetch('https://snapshots.avelytique.gozque.com/current-available.json')
   ).json()
-  let promises: Promise<any>[] = []
-  for (let station of stations.value!.data) {
-    promises.push(
-      fetch(
-        `https://snapshots.avelytique.gozque.com/past-24h-station-${station.id}-availability.json`
-      )
-    )
-  }
-  let responses = await Promise.allSettled(promises)
+
+  let availability24Hours: {
+    data: {
+      [station: number]: { bikes: number | null; free_docks: number | null; timestamp: string }[]
+    }
+  } = await (
+    await fetch('https://snapshots.avelytique.gozque.com/past-24h-station-availability.json')
+  ).json()
 
   let availabilityDataTemporal: {
     [stationId: number]: {
@@ -170,39 +169,32 @@ async function initSetup() {
     }
   } = {}
 
-  for (const response of responses) {
-    if (response.status === 'fulfilled') {
-      let currentTimeEdt = getEdtDate(new Date())
-      if (response.value.status === 200) {
-        const body: Past24HoursSnapshot = await response.value.json()
-        if (body.data.length > 0 && body.data[0].bikes != null && body.data[0].free_docks != null) {
-          availabilityDataTemporal[body.station_id] = {
-            bikes: body.data
-              .filter((entry, i) => {
-                // reduce the number of points to one per 15 minutes, except for the last half hour
-                let tsEdt = getEdtDate(new Date(entry.timestamp))
-                return (
-                  tsEdt.getDate() == currentTimeEdt.getDate() &&
-                  (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
-                )
-              })
-              .map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
-            free_docks: body.data
-              .filter((entry, i) => {
-                // reduce the number of points to one per 15 minutes, except for the last half hour
-                let tsEdt = getEdtDate(new Date(entry.timestamp))
-                return (
-                  tsEdt.getDate() == currentTimeEdt.getDate() &&
-                  (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
-                )
-              })
-              .map((entry) => ({
-                x: entry.timestamp,
-                y: entry.free_docks
-              }))
-          }
-        }
-      }
+  for (const station_id in availability24Hours.data) {
+    let currentTimeEdt = getEdtDate(new Date())
+    const data = availability24Hours.data[station_id]
+    availabilityDataTemporal[station_id] = {
+      bikes: data
+        .filter((entry, i) => {
+          // reduce the number of points to one per 15 minutes, except for the last half hour
+          let tsEdt = getEdtDate(new Date(entry.timestamp))
+          return (
+            tsEdt.getDate() == currentTimeEdt.getDate() &&
+            (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
+          )
+        })
+        .map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
+      free_docks: data
+        .filter((entry, i) => {
+          let tsEdt = getEdtDate(new Date(entry.timestamp))
+          return (
+            tsEdt.getDate() == currentTimeEdt.getDate() &&
+            (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
+          )
+        })
+        .map((entry) => ({
+          x: entry.timestamp,
+          y: entry.free_docks
+        }))
     }
   }
 

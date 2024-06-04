@@ -199,6 +199,16 @@ const chartOptions: ChartOptions<'line'> = {
 
 const route = useRoute()
 const stationInfo: Ref<CurrentAvailableEntry | null> = ref(null)
+const currentAvailable: Ref<{
+  bikes: {
+    x: string
+    y: number | null
+  }[]
+  free_docks: {
+    x: string
+    y: number | null
+  }[]
+} | null> = ref(null)
 const favorites = initPersistedSet('favorites')
 const favorite: Ref<boolean> = ref(false)
 
@@ -275,27 +285,7 @@ async function syncData(newVal: Set<string>) {
   for (const label of labels) {
     if (newVal.has(label) && stationInfo.value && availabilities.value[label] === undefined) {
       if (label === 'current') {
-        const response = await fetch(
-          `https://snapshots.avelytique.gozque.com/past-24h-station-${stationInfo.value.id}-availability.json`
-        )
-        const body: Past24HoursSnapshot = await response.json()
-        newAvailabilities[label] = {
-          bikes: body.data
-            .filter((entry, i) => {
-              let tsEdt = getEdtDate(new Date(entry.timestamp))
-              return tsEdt.getDate() == currentTimeEdt.getDate()
-            })
-            .map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
-          free_docks: body.data
-            .filter((entry, i) => {
-              let tsEdt = getEdtDate(new Date(entry.timestamp))
-              return tsEdt.getDate() == currentTimeEdt.getDate()
-            })
-            .map((entry) => ({
-              x: entry.timestamp,
-              y: entry.free_docks
-            }))
-        }
+        newAvailabilities[label] = currentAvailable.value || { bikes: [], free_docks: [] }
       } else {
         const response = await fetch(
           `https://snapshots.avelytique.gozque.com/station-${stationInfo.value.id}-availability-${label}.json`
@@ -331,6 +321,43 @@ async function setupForStation(id: number) {
     await fetch('https://snapshots.avelytique.gozque.com/current-available.json')
   ).json()
   stationInfo.value = currentAvailabilitySnapshot.data.find((entry) => entry.id === id) || null
+
+  if (stationInfo.value == null) {
+    return
+  }
+
+  let availability24Hours: {
+    data: {
+      [station: number]: {
+        bikes: number | null
+        free_docks: number | null
+        timestamp: string
+      }[]
+    }
+  } = await (
+    await fetch('https://snapshots.avelytique.gozque.com/past-24h-station-availability.json')
+  ).json()
+
+  let currentTimeEdt = getEdtDate(new Date())
+
+  currentAvailable.value = {
+    bikes: availability24Hours.data[stationInfo.value.id]
+      .filter((entry, i) => {
+        let tsEdt = getEdtDate(new Date(entry.timestamp))
+        return tsEdt.getDate() == currentTimeEdt.getDate()
+      })
+      .map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
+    free_docks: availability24Hours.data[stationInfo.value.id]
+      .filter((entry, i) => {
+        let tsEdt = getEdtDate(new Date(entry.timestamp))
+        return tsEdt.getDate() == currentTimeEdt.getDate()
+      })
+      .map((entry) => ({
+        x: entry.timestamp,
+        y: entry.free_docks
+      }))
+  }
+
   bindItemToPersistedSet(id, favorite, favorites)
 }
 

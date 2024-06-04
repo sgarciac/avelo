@@ -3,7 +3,7 @@ import { Database } from './db';
 
 export const CURRENT_AVAILABLE_R2_KEY = 'current-available.json';
 const SNAPSHOTS_ROOT_URL = 'snapshots.avelytique.gozque.com';
-export type SnapshotKind = 'CURRENT_AVAILABLE' | 'PAST_24H_STATION_AVAILABILITY' | 'DAILY_STATION_AVAILABILITY';
+export type SnapshotKind = 'CURRENT_AVAILABLE' | 'PAST_24H_STATION_AVAILABILITY' | 'DAILY_STATION_AVAILABILITY' | 'PAST_24H_AVAILABILITY';
 
 interface SnapshotInput<T> {
 	kind: SnapshotKind;

@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { getDatabase } from './db';
 import { CURRENT_AVAILABLE_R2_KEY, makeJsonSnapsot as makeJsonSnaphsot } from './snapshot';
+import { reduceLog } from './utils';
 dayjs.extend(utc);
 
 export default {
@@ -24,6 +25,7 @@ export default {
 	},
 };
 
+/*
 async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
 	// Store snapshots of the states for all stations for the past 24 hours
 	const currentTime = new Date(); // utc, in cloudflare
@@ -46,6 +48,7 @@ async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ct
 			.select(['bikes', 'free_docks', 'timestamp'])
 			.execute();
 		states = records.map((record) => ({ bikes: record.bikes, free_docks: record.free_docks, timestamp: record.timestamp }));
+		states = reduceLog(states);
 		promises.push(
 			makeJsonSnaphsot<{ bikes: number | null; free_docks: number | null; timestamp: string }[]>(env.SNAPSHOTS, db, {
 				data: states,
@@ -60,6 +63,43 @@ async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ct
 		);
 	}
 	await Promise.allSettled(promises);
+}*/
+
+async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+	// Store snapshots of the states for all stations for the past 24 hours
+	const currentTime = new Date(); // utc, in cloudflare
+	const db = getDatabase(env);
+	let stationData = await db
+		.selectFrom('state')
+		.select(['station_id as id', 'station_name as name'])
+		.groupBy(['station_id', 'station_name'])
+		.execute();
+
+	let allStations: { [station: number]: { bikes: number | null; free_docks: number | null; timestamp: string }[] } = {};
+	for (let station of stationData) {
+		let states: { bikes: number | null; free_docks: number | null; timestamp: string }[] = [];
+		let records = await db
+			.selectFrom('state')
+			.where('station_id', '=', station.id)
+			// @ts-ignore
+			.where('timestamp', '>=', new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toISOString())
+			.orderBy('timestamp asc')
+			.select(['bikes', 'free_docks', 'timestamp'])
+			.execute();
+		states = records.map((record) => ({ bikes: record.bikes, free_docks: record.free_docks, timestamp: record.timestamp }));
+		states = reduceLog(states);
+		allStations[station.id] = states;
+	}
+	await makeJsonSnaphsot<any>(env.SNAPSHOTS, db, {
+		data: allStations,
+		description: 'Available bikes and docks for the past 24 hours for all stations, with entries ordered from oldest to most recent.',
+		key: `past-24h-station-availability.json`,
+		label: `past-24h-station-availability`,
+		station_id: null,
+		station_name: null,
+		timestamp: currentTime,
+		kind: 'PAST_24H_AVAILABILITY',
+	});
 }
 
 async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
