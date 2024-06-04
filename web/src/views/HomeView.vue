@@ -172,29 +172,41 @@ async function initSetup() {
   for (const station_id in availability24Hours.data) {
     let currentTimeEdt = getEdtDate(new Date())
     const data = availability24Hours.data[station_id]
+
+    // get the latest availability of previous date, to add a fabricated first point of the day
+    let lastOfPrevious = [...data].reverse().find((entry, i) => {
+      let tsEdt = getEdtDate(new Date(entry.timestamp))
+      return tsEdt.getDate() != currentTimeEdt.getDate()
+    })
+
+    let filteredData = data.filter((entry, i) => {
+      let tsEdt = getEdtDate(new Date(entry.timestamp))
+      return (
+        tsEdt.getDate() == currentTimeEdt.getDate() &&
+        (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
+      )
+    })
+
+    if (lastOfPrevious) {
+      let currentTimeEdt = getEdtDate(new Date())
+      let startOfDay = dayjs.utc(dayjs(currentTimeEdt).format('YYYY-MM-DDT04:00:01')).toDate()
+      console.log(startOfDay)
+      filteredData = [
+        {
+          timestamp: startOfDay.toISOString(),
+          bikes: lastOfPrevious.bikes,
+          free_docks: lastOfPrevious.free_docks
+        },
+        ...filteredData
+      ]
+    }
+
     availabilityDataTemporal[station_id] = {
-      bikes: data
-        .filter((entry, i) => {
-          // reduce the number of points to one per 15 minutes, except for the last half hour
-          let tsEdt = getEdtDate(new Date(entry.timestamp))
-          return (
-            tsEdt.getDate() == currentTimeEdt.getDate() &&
-            (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
-          )
-        })
-        .map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
-      free_docks: data
-        .filter((entry, i) => {
-          let tsEdt = getEdtDate(new Date(entry.timestamp))
-          return (
-            tsEdt.getDate() == currentTimeEdt.getDate() &&
-            (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
-          )
-        })
-        .map((entry) => ({
-          x: entry.timestamp,
-          y: entry.free_docks
-        }))
+      bikes: filteredData.map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
+      free_docks: filteredData.map((entry) => ({
+        x: entry.timestamp,
+        y: entry.free_docks
+      }))
     }
   }
 

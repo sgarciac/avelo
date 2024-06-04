@@ -340,22 +340,38 @@ async function setupForStation(id: number) {
 
   let currentTimeEdt = getEdtDate(new Date())
 
+  let lastOfPrevious = [...availability24Hours.data[stationInfo.value.id]]
+    .reverse()
+    .find((entry, i) => {
+      let tsEdt = getEdtDate(new Date(entry.timestamp))
+      return tsEdt.getDate() != currentTimeEdt.getDate()
+    })
+
+  let filteredData = availability24Hours.data[stationInfo.value.id].filter((entry, i) => {
+    let tsEdt = getEdtDate(new Date(entry.timestamp))
+    return tsEdt.getDate() == currentTimeEdt.getDate()
+  })
+
+  if (lastOfPrevious) {
+    let currentTimeEdt = getEdtDate(new Date())
+    let startOfDay = dayjs.utc(dayjs(currentTimeEdt).format('YYYY-MM-DDT04:00:01')).toDate()
+    console.log(startOfDay)
+    filteredData = [
+      {
+        timestamp: startOfDay.toISOString(),
+        bikes: lastOfPrevious.bikes,
+        free_docks: lastOfPrevious.free_docks
+      },
+      ...filteredData
+    ]
+  }
+
   currentAvailable.value = {
-    bikes: availability24Hours.data[stationInfo.value.id]
-      .filter((entry, i) => {
-        let tsEdt = getEdtDate(new Date(entry.timestamp))
-        return tsEdt.getDate() == currentTimeEdt.getDate()
-      })
-      .map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
-    free_docks: availability24Hours.data[stationInfo.value.id]
-      .filter((entry, i) => {
-        let tsEdt = getEdtDate(new Date(entry.timestamp))
-        return tsEdt.getDate() == currentTimeEdt.getDate()
-      })
-      .map((entry) => ({
-        x: entry.timestamp,
-        y: entry.free_docks
-      }))
+    bikes: filteredData.map((entry) => ({ x: entry.timestamp, y: entry.bikes })),
+    free_docks: filteredData.map((entry) => ({
+      x: entry.timestamp,
+      y: entry.free_docks
+    }))
   }
 
   bindItemToPersistedSet(id, favorite, favorites)
