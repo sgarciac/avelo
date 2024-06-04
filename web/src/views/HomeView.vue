@@ -181,10 +181,7 @@ async function initSetup() {
 
     let filteredData = data.filter((entry, i) => {
       let tsEdt = getEdtDate(new Date(entry.timestamp))
-      return (
-        tsEdt.getDate() == currentTimeEdt.getDate() &&
-        (i % 4 == 0 || currentTimeEdt.getTime() - tsEdt.getTime() < 30 * 60 * 1000)
-      )
+      return tsEdt.getDate() == currentTimeEdt.getDate()
     })
 
     if (lastOfPrevious) {
