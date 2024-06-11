@@ -128,7 +128,7 @@ import {
   LinearScale,
   PointElement,
   TimeScale,
-  // Title,
+  Title,
   Tooltip,
   type ChartOptions
 } from 'chart.js'
@@ -143,8 +143,8 @@ ChartJS.register(
   PointElement,
   LineElement,
   Tooltip,
-  Legend
-  // Title
+  Legend,
+  Title
 )
 
 import dayjs from 'dayjs'
