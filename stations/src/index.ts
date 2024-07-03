@@ -1,23 +1,6 @@
-import { WorkerEntrypoint } from "cloudflare:workers";
 import { AutoRouter } from "itty-router";
 
-async function consume(stream: ReadableStream) {
-  const reader = stream.getReader();
-  while (!(await reader.read()).done) {}
-}
-
-export class WorkerB extends WorkerEntrypoint {
-  async add(a: number, b: number) {
-    return a + b;
-  }
-}
-
 async function current(): Promise<Response> {
-  let id: string | null = "";
-  let name: string = "";
-  let geocoordinatesString: any;
-  let availabilityString: any;
-
   let stations: {
     [key: number]: {
       id: number;
@@ -29,58 +12,40 @@ async function current(): Promise<Response> {
     };
   } = {};
 
-  const response = await fetch("https://aveloquebec.ca/stations/");
-  const rewriter = new HTMLRewriter()
-    // Getting id and name of the stations.
-    .on('ul[id="infoWind"] > li', {
-      element(el) {
-        id = el.getAttribute("id");
-        el.onEndTag(() => {
-          let data = {
-            id: parseInt(id || ""),
-            name: name.trim(),
-            bikes: 0,
-            free_docks: 0,
-          };
-          stations[data.id] = data;
-          name = "";
-        });
-      },
-    })
-    .on('ul[id="infoWind"] > li > div.infoAdd > h5', {
-      text(txt: any) {
-        name = name + txt.text;
-      },
-    })
-    .on('input[name="arr_adr"][type="hidden"]', {
-      element(el) {
-        geocoordinatesString = el.getAttribute("value");
-      },
-    })
-    .on('input[id="icon_txt"][type="hidden"]', {
-      element(el) {
-        availabilityString = el.getAttribute("value");
-      },
-    });
-  await consume(rewriter.transform(response).body!);
-  // parse availability
-  if (availabilityString != null) {
-    let data = JSON.parse(availabilityString);
-    for (let key in data) {
-      let stationId = parseInt(key);
-      let [bikes, free_docks] = data[key].split("/");
-      stations[stationId].bikes = parseInt(bikes);
-      stations[stationId].free_docks = parseInt(free_docks);
-    }
+  const stationInformation = (
+    await (
+      await fetch(
+        "https://quebec.publicbikesystem.net/customer/gbfs/v2/en/station_information"
+      )
+    ).json<any>()
+  ).data.stations;
+
+  const stationStatus = (
+    await (
+      await fetch(
+        "https://quebec.publicbikesystem.net/customer/gbfs/v2/en/station_status"
+      )
+    ).json<any>()
+  ).data.stations;
+
+  for (const station of stationInformation) {
+    const station_id = parseInt(station.station_id);
+    stations[station_id] = {
+      id: station_id,
+      name: station.name,
+      lat: station.lat,
+      long: station.lon,
+    };
   }
-  // parse geocoordinates
-  if (geocoordinatesString != null) {
-    let data = JSON.parse(geocoordinatesString);
-    for (let key in data) {
-      let stationId = parseInt(key);
-      let [lat, long] = data[key].split("_");
-      stations[stationId].lat = Number(lat);
-      stations[stationId].long = Number(long);
+
+  for (const station of stationStatus) {
+    if (stations[station.station_id] != null) {
+      const station_id = parseInt(station.station_id);
+      stations[station_id] = {
+        ...stations[station_id],
+        bikes: station.num_bikes_available,
+        free_docks: station.num_docks_available,
+      };
     }
   }
 
