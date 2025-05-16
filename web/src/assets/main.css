@@ -10,23 +10,21 @@
 }*/
 
 body {
-  min-height: 100vh;
-  margin: 0;
+  @apply min-h-screen m-0;
 }
 
 footer {
-  min-height: 100%;
+  @apply min-h-full;
 }
 
 /* The article fills all the space between header & footer */
 
 body {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
 }
 
 main {
-  flex: 1;
+  @apply flex-1;
 }
 
 .background {
@@ -34,37 +32,36 @@ main {
 }
 
 footer a {
-  color: white;
+  @apply text-light;
 }
 
 a,
 .tab {
-  text-decoration: none;
+  @apply no-underline;
 }
 
 a:hover {
-  text-decoration: underline;
+  @apply underline;
 }
 
 footer {
-  z-index: 0;
+  @apply z-footer;
 }
 
 footer a.tab {
-  color: white;
-  text-decoration: none;
+  @apply text-light no-underline;
 }
 
 footer a.tab:hover {
+  @apply text-gray-light;
   transition: all 0.3s ease-in-out;
-  color: rgba(255, 255, 255, 0.75);
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
 }
 
 /* hide the tooltip on touch devices */
-@media (pointer: none), (pointer: coarse) {
+@media (pointer: none),
+(pointer: coarse) {
   .leaflet-tooltip {
-    display: none;
-    visibility: hidden;
+    @apply hidden invisible;
   }
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full flex flex-col items-center mb-4">
+  <div class="w-full flex flex-col items-center mb-md">
     <div class="w-full prose my-auto">
       <h3 v-if="stationInfo">{{ stationInfo.name }}</h3>
       <div class="form-control w-52">
@@ -61,7 +61,7 @@
             }
           }
         }"
-        class="mt-10"
+        class="mt-xl"
         :data="{
           //@ts-ignore
           datasets: selectedAvailabilitiesArray
@@ -80,21 +80,21 @@
           id="current"
           value="current"
           v-model="selectedAvailabilities"
-          class="checkbox checkbox-sm ml-3"
+          class="checkbox checkbox-sm ml-sm-md"
         />
       </label>
-      <div class="grid grid-cols-7 mt-2">
+      <div class="grid grid-cols-7 mt-sm">
         <template v-for="dayHeader in dayHeaders" :key="dayHeader">
           <div
             :class="[
               'text-sm',
               'flex',
               'justify-center',
-              'mb-2',
+              'mb-sm',
               'min-w-[90px]',
               {
-                'bg-slate-200': getTodayEdtDayLabel() !== dayHeader,
-                'bg-slate-400': getTodayEdtDayLabel() === dayHeader
+                'bg-gray-dark': getTodayEdtDayLabel() !== dayHeader,
+                'bg-gray-darker': getTodayEdtDayLabel() === dayHeader
               }
             ]"
           >
@@ -111,7 +111,7 @@
               v-model="selectedAvailabilities"
               class="checkbox checkbox-xs"
             />
-            <span class="label-text text-xs mb-2">{{ dayjs(label).format('MM-DD') }}</span>
+            <span class="label-text text-xs mb-sm">{{ dayjs(label).format('MM-DD') }}</span>
           </label>
         </template>
       </div>

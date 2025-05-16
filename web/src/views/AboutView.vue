@@ -1,6 +1,6 @@
 <template>
-  <div class="w-full flex flex-col items-center mb-4">
-    <div class="w-full prose my-auto p-1">
+  <div class="w-full flex flex-col items-center mb-md">
+    <div class="w-full prose my-auto p-xs">
       <p>Ce site n'est pas affilié à àVélo.</p>
       <p>
         Code source:
@@ -20,5 +20,3 @@
     </div>
   </div>
 </template>
-
-<style></style>
