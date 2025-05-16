@@ -250,7 +250,7 @@ function getDates(startDate: Date, stopDate: Date) {
   return dateArray
 }
 const dates = getDates(
-  new Date('2024-05-21T04:01:00Z'),
+  new Date('2025-05-04T04:01:00Z'),
   new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
 ).reverse()
 const labels: string[] = [
