@@ -82,23 +82,23 @@ onMounted(async () => {
       />
       <l-tooltip>{{ marker.title }}</l-tooltip>
       <l-popup>
-        <h1 class="text-lg mb-3 text-center">
+        <h1 class="text-lg mb-sm-md text-center">
           <RouterLink :to="marker.stationUrl">{{ marker.title }}</RouterLink>
         </h1>
-        <div class="flex columns gap-3">
+        <div class="flex columns gap-sm-md">
           <div class="basis-[50%] text-center">
-            <Bike class="inline align-text-top pb-1" color="black" :size="40" :stroke-width="2" />
-            <h2 class="text-xl font-bold color-[#374167]">{{ marker.bikes }}</h2>
+            <Bike class="inline align-text-top pb-xs" color="black" :size="40" :stroke-width="2" />
+            <h2 class="text-xl font-bold text-marker">{{ marker.bikes }}</h2>
             <p>Vélos<br />disponibles</p>
           </div>
           <div class="basis-[50%] text-center">
             <ParkingCircle
-              class="inline align-text-top pb-1"
+              class="inline align-text-top pb-xs"
               color="black"
               :size="40"
               :stroke-width="2"
             />
-            <h2 class="text-xl font-bold color-[#374167]">{{ marker.freeDocks }}</h2>
+            <h2 class="text-xl font-bold text-marker">{{ marker.freeDocks }}</h2>
             <p>Ancrages disponibles</p>
           </div>
         </div>

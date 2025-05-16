@@ -264,8 +264,8 @@ async function setDistanceMap(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-col items-center mb-4">
-    <div class="mt-2 flex flex-col items-start">
+  <div class="flex flex-col items-center mb-md">
+    <div class="mt-sm flex flex-col items-start">
       <input
         type="text"
         v-model="filter"
@@ -274,13 +274,13 @@ async function setDistanceMap(): Promise<void> {
       />
       <label class="label cursor-pointer" v-if="supportsGeolocation">
         <input type="checkbox" v-model="sortByDistance" class="toggle toggle-xs" />
-        <span class="label-text prose-sm text-xs ml-3"
+        <span class="label-text prose-sm text-xs ml-sm-md"
           >Montrer les stations les plus proches en premier</span
         >
       </label>
       <label class="label cursor-pointer" v-if="favorites && favorites.size > 0">
         <input type="checkbox" v-model="favoritesOnly" class="toggle toggle-xs" />
-        <span class="label-text prose-sm text-xs ml-3"
+        <span class="label-text prose-sm text-xs ml-sm-md"
           >Montrer seulement les stations favorites</span
         >
       </label>
@@ -300,14 +300,14 @@ async function setDistanceMap(): Promise<void> {
       </thead>
       <tbody v-if="currentPage != null">
         <!-- row 1 -->
-        <tr v-for="station in currentPage" :key="station.id" class="p-1">
-          <th class="p-1 name-cell overflow-hidden">
+        <tr v-for="station in currentPage" :key="station.id" class="p-xs">
+          <th class="p-xs name-cell overflow-hidden">
             <RouterLink class="tab text-xs link link-primary" :to="`/station/${station.id}`">{{
               station.name
             }}</RouterLink
             >&nbsp;
           </th>
-          <td class="p-1" v-if="availabilityData[station.id] != null">
+          <td class="p-xs" v-if="availabilityData[station.id] != null">
             <Line
               :style="{ height: '75px', width: '120px' }"
               :id="'bikes-availability-chart-' + station.id"
@@ -331,7 +331,7 @@ async function setDistanceMap(): Promise<void> {
               { datasets: [{ data: availabilityData[station.id].bikes }] }"
             />
           </td>
-          <td class="p-1" v-if="availabilityData[station.id] != null">
+          <td class="p-xs" v-if="availabilityData[station.id] != null">
             <Line
               :style="{ height: '75px', width: '120px' }"
               :id="'docks-availability-chart-' + station.id"
@@ -358,7 +358,7 @@ async function setDistanceMap(): Promise<void> {
         </tr>
       </tbody>
     </table>
-    <div class="join mt-3" v-if="pageCount > 1">
+    <div class="join mt-sm-md" v-if="pageCount > 1">
       <button class="join-item btn btn-xs" @click="page = page - 1" :disabled="page == 0">«</button>
       <button class="join-item btn btn-xs">Page {{ page + 1 }} de {{ pageCount }}</button>
       <button
@@ -369,7 +369,7 @@ async function setDistanceMap(): Promise<void> {
         »
       </button>
     </div>
-    <div v-if="stations != null" class="prose-sm text-xs mt-2">
+    <div v-if="stations != null" class="prose-sm text-xs mt-sm">
       Dernière actualisation {{ dayjs(stations.timestamp).fromNow() }}
     </div>
   </div>
