@@ -283,7 +283,7 @@ const initialDates = [
 
 const dates = initialDates.flatMap(({ from, to }) => getDates(from, to)).reverse()
 
-const years: number[] = initialDates.reverse().map((item) => item.from.getFullYear())
+const years: number[] = [...initialDates].reverse().map((item) => item.from.getFullYear())
 
 const labels: string[] = [
   'current',
