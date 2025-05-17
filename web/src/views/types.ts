@@ -5,9 +5,11 @@ export interface CurrentAvailableSnapshot {
   data: CurrentAvailableEntry[]
 }
 
+export type StationStatus = 'PLANNED' | 'IN_SERVICE' | 'MAINTENANCE'
 export interface CurrentAvailableEntry {
   name: string
   id: number
+  status: StationStatus
   bikes: number | null
   free_docks: number | null
   lat: number

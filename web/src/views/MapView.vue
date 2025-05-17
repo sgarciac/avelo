@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { Bike, ParkingCircle } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
-import type { CurrentAvailableSnapshot } from './types'
+import type { CurrentAvailableSnapshot, StationStatus } from './types'
 const zoom = ref(13)
 const center = ref([46.8, -71.25])
 
@@ -19,6 +19,7 @@ interface Marker {
   id: string
   title: string
   latLong: [Number, Number]
+  status: StationStatus
   bikes: Number | null
   freeDocks: Number | null
   url: string
@@ -28,7 +29,13 @@ interface Marker {
 const markers = ref<Marker[]>()
 const titleURL = 'https://{s}.osm.gozque.com/{z}/{x}/{y}.png'
 
-const markerUrl = (bikes: number | null, freeDocks: number | null): string => {
+const markerUrl = (
+  bikes: number | null,
+  freeDocks: number | null,
+  status: StationStatus
+): string => {
+  if (status !== 'IN_SERVICE') return 'markers/marker-empty.svg'
+
   const percent =
     !bikes || freeDocks === null
       ? 0
@@ -47,9 +54,10 @@ async function initSetup() {
       id: station.id.toString(),
       title: station.name,
       latLong: [station.lat, station.long],
+      status: station.status,
       bikes: station.bikes,
       freeDocks: station.free_docks,
-      url: markerUrl(station.bikes, station.free_docks),
+      url: markerUrl(station.bikes, station.free_docks, station.status),
       stationUrl: `/station/${station.id}`
     })) || []
 }
@@ -85,7 +93,10 @@ onMounted(async () => {
         <h1 class="text-lg mb-sm-md text-center">
           <RouterLink :to="marker.stationUrl">{{ marker.title }}</RouterLink>
         </h1>
-        <div class="flex columns gap-sm-md">
+        <div v-if="marker.status !== 'IN_SERVICE'" class="text-center">
+          La station est hors service actuellement.
+        </div>
+        <div v-else class="flex columns gap-sm-md">
           <div class="basis-[50%] text-center">
             <Bike class="inline align-text-top pb-xs" color="black" :size="40" :stroke-width="2" />
             <h2 class="text-xl font-bold text-marker">{{ marker.bikes }}</h2>
