@@ -153,7 +153,7 @@ import {
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 import { Line } from 'vue-chartjs'
 import { bindItemToPersistedSet, initPersistedSet } from './storage'
-import { scrollToDivById } from './../utils/scrollTo'
+import { scrollToDivById } from '../utils/scrollTo'
 ChartJS.register(
   CategoryScale,
   LinearScale,
