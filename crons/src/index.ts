@@ -7,6 +7,9 @@ import utc from 'dayjs/plugin/utc';
 import { getDatabase } from './db';
 import { CURRENT_AVAILABLE_R2_KEY, makeJsonSnapsot as makeJsonSnaphsot } from './snapshot';
 import { reduceLog } from './utils';
+
+type StationStatus = 'PLANNED' | 'IN_SERVICE' | 'MAINTENANCE';
+
 dayjs.extend(utc);
 
 export default {
@@ -160,6 +163,7 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 		.json<
 			{
 				id: number;
+				status: StationStatus;
 				bikes: number;
 				free_docks: number;
 				name: string;
@@ -177,7 +181,15 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 		currentEdtTimeHelper.year(),
 	];
 	const db = getDatabase(env);
-	const stations: { name: string; id: number; bikes: number | null; free_docks: number | null; lat: number; long: number }[] = [];
+	const stations: {
+		name: string;
+		id: number;
+		status: StationStatus;
+		bikes: number | null;
+		free_docks: number | null;
+		lat: number;
+		long: number;
+	}[] = [];
 
 	for (const station of currentState) {
 		await db
@@ -185,6 +197,7 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 			.values({
 				station_name: station.name,
 				station_id: station.id,
+				status: station.status,
 				bikes: station.bikes,
 				free_docks: station.free_docks,
 				timestamp: currentTime.toISOString(),
@@ -198,6 +211,7 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 		stations.push({
 			name: station.name,
 			id: station.id,
+			status: station.status,
 			bikes: station.bikes,
 			free_docks: station.free_docks,
 			lat: station.lat,
