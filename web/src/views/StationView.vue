@@ -12,7 +12,6 @@
       </div>
       <Line
         v-if="stationInfo && availabilities"
-        :style="{ height: '220px', width: '500px' }"
         :id="'bikes-availability-chart-' + stationInfo.id"
         :title="`Vélos disponibles ajourd'hui (${stationInfo.name})`"
         :options="{
@@ -43,8 +42,7 @@
 
       <Line
         v-if="stationInfo && availabilities"
-        :style="{ height: '220px', width: '500px' }"
-        :id="'bikes-availability-chart-' + stationInfo.id"
+        :id="'anchors-availability-chart-' + stationInfo.id"
         :title="`Ancrages disponibles (${stationInfo.name})`"
         :options="{
           ...chartOptions,
@@ -83,38 +81,58 @@
           class="checkbox checkbox-sm ml-sm-md"
         />
       </label>
-      <div class="grid grid-cols-7 mt-sm">
-        <template v-for="dayHeader in dayHeaders" :key="dayHeader">
+      <template v-for="year in years" :key="year">
+        <div
+          class="collapse collapse-arrow mb-md mt-md border border-gray-darker"
+          :class="{ 'collapse-open': expandedYears.has(year) }"
+        >
           <div
-            :class="[
-              'text-sm',
-              'flex',
-              'justify-center',
-              'mb-sm',
-              'min-w-[90px]',
-              {
-                'bg-gray-dark': getTodayEdtDayLabel() !== dayHeader,
-                'bg-gray-darker': getTodayEdtDayLabel() === dayHeader
-              }
-            ]"
+            class="collapse-title p-sm-md min-h-md hover:cursor-pointer"
+            :id="`year-${year}`"
+            @click="toggleYear(year, $event)"
           >
-            {{ dayHeader }}
+            Année {{ year }}
           </div>
-        </template>
+          <div class="collapse-content text-sm">
+            <div class="grid grid-cols-7 mt-sm gap-xs">
+              <template v-for="weekday in orderedWeekdays" :key="weekday">
+                <div
+                  class="text-sm text-center mb-sm min-w-[90px]"
+                  :class="[
+                    {
+                      'bg-gray-dark': getTodayEdtDayLabel() !== weekday,
+                      'bg-gray-darker': getTodayEdtDayLabel() === weekday
+                    }
+                  ]"
+                >
+                  {{ weekday }}
+                </div>
+              </template>
 
-        <template v-for="label in labels" :key="label">
-          <label class="flex items-center flex-col cursor-pointer" v-if="label !== 'current'">
-            <input
-              type="checkbox"
-              :id="label"
-              :value="label"
-              v-model="selectedAvailabilities"
-              class="checkbox checkbox-xs"
-            />
-            <span class="label-text text-xs mb-sm">{{ dayjs(label).format('MM-DD') }}</span>
-          </label>
-        </template>
-      </div>
+              <template v-for="weekday in orderedWeekdays" :key="weekday">
+                <div class="flex flex-col items-center gap-xs">
+                  <template
+                    v-for="label in dateGroups[year]?.[weekday.toLowerCase()] || []"
+                    :key="label"
+                  >
+                    <label v-if="label !== null" class="flex flex-col items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        :id="label"
+                        :value="label"
+                        v-model="selectedAvailabilities"
+                        class="checkbox checkbox-xs"
+                      />
+                      <span class="label-text text-xs">{{ dayjs(label).format('MM-DD') }}</span>
+                    </label>
+                    <span v-else class="label-text text-xs h-[36px]"></span>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -135,6 +153,7 @@ import {
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm'
 import { Line } from 'vue-chartjs'
 import { bindItemToPersistedSet, initPersistedSet } from './storage'
+import { scrollToDivById } from '../utils/scrollTo'
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -249,14 +268,28 @@ function getDates(startDate: Date, stopDate: Date) {
   }
   return dateArray
 }
-const dates = getDates(
-  new Date('2025-05-04T04:01:00Z'),
-  new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
-).reverse()
+
+// Show only the dates when the scraper was activated
+const initialDates = [
+  {
+    from: new Date('2024-05-21T04:01:00Z'),
+    to: new Date('2024-11-01T04:01:00Z')
+  },
+  {
+    from: new Date('2025-05-01T04:01:00Z'),
+    to: new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
+  }
+]
+
+const dates = initialDates.flatMap(({ from, to }) => getDates(from, to)).reverse()
+
+const years: number[] = [...initialDates].reverse().map((item) => item.from.getFullYear())
+
 const labels: string[] = [
   'current',
   ...dates.map((date) => dayjs(date).tz('America/Montreal').format('YYYY-MM-DD'))
 ]
+
 const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const dayHeaders: string[] = []
 for (let i = 0; i < 7; i++) {
@@ -273,8 +306,50 @@ const availabilities: Ref<{
   }
 }> = ref({})
 
+const expandedYears = ref<Set<number>>(new Set([2025]))
+
+function toggleYear(year: number, e: Event) {
+  if (expandedYears.value.has(year)) {
+    expandedYears.value.delete(year)
+  } else {
+    expandedYears.value.add(year)
+  }
+
+  const el = e.currentTarget as HTMLElement
+
+  setTimeout(() => scrollToDivById(el.id, 100), 200)
+}
+
+const orderedWeekdays = ['Dim', 'Sam', 'Ven', 'Jeu', 'Mer', 'Mar', 'Lun']
+
+// Group labels by year and day of week
+const dateGroups = computed(() => {
+  const result: Record<number, Record<string, Array<string | null>>> = {}
+  for (const label of labels) {
+    if (label === 'current') continue
+    const year = Number(label.slice(0, 4))
+    if (!result[year]) result[year] = {}
+    if (objEmpty(result[year])) {
+      const count = Number(dayjs(label).locale('fr').day())
+      for (let i = 0; i < 7 - count; i++) {
+        const weekday = orderedWeekdays[i].toLowerCase()
+        if (!result[year][weekday]) result[year][weekday] = [null]
+      }
+    }
+
+    const weekday = dayjs(label).locale('fr').format('ddd').slice(0, 3) // "Lun", etc.
+    if (!result[year][weekday]) result[year][weekday] = []
+    result[year][weekday].push(label)
+  }
+
+  return result
+})
+
+const objEmpty = (obj: Record<string, unknown>) => {
+  return Object.keys(obj).length === 0
+}
+
 async function syncData(newVal: Set<string>) {
-  let currentTimeEdt = getEdtDate(new Date())
   const newAvailabilities: {
     [label: string]: {
       bikes: { x: string; y: number | null }[]
@@ -389,4 +464,9 @@ onMounted(async () => {
   await syncData(selectedAvailabilities.value)
 })
 </script>
-<style></style>
+<style>
+.collapse-arrow > .collapse-title:after,
+.collapse-open.collapse-arrow > .collapse-title:after {
+  top: 25px;
+}
+</style>
