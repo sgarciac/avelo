@@ -93,7 +93,7 @@ async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ct
 		states = reduceLog(states);
 		allStations[station.id] = states;
 	}
-	await makeJsonSnaphsot<any>(env.SNAPSHOTS, db, {
+	await makeJsonSnapshot<any>(env.SNAPSHOTS, db, {
 		data: allStations,
 		description: 'Available bikes and docks for the past 24 hours for all stations, with entries ordered from oldest to most recent.',
 		key: `past-24h-station-availability.json`,
@@ -138,7 +138,7 @@ async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ct
 			const records = await recordsQuery.execute();
 
 			states = records.map((record) => ({ bikes: record.bikes, free_docks: record.free_docks, timestamp: record.timestamp }));
-			await makeJsonSnaphsot<{ bikes: number | null; free_docks: number | null; timestamp: string }[]>(env.SNAPSHOTS, db, {
+			await makeJsonSnapshot<{ bikes: number | null; free_docks: number | null; timestamp: string }[]>(env.SNAPSHOTS, db, {
 				data: states,
 				description:
 					'Available bikes and docks for ' + edtYesterdayLabel + ' (EDT) for ' + station.name + ' ordered from oldest to most recent.',
