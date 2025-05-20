@@ -26,7 +26,7 @@ interface SnapshotDocument<T> {
 	station_name?: string;
 }
 
-export async function makeJsonSnapsot<T>(bucket: R2Bucket, db: Kysely<Database>, input: SnapshotInput<T>): Promise<void> {
+export async function makeJsonSnapshot<T>(bucket: R2Bucket, db: Kysely<Database>, input: SnapshotInput<T>): Promise<void> {
 	await bucket.put(
 		input.key,
 		JSON.stringify({

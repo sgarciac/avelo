@@ -15,6 +15,7 @@ export interface State {
 	station_name: string;
 	bikes: number | null;
 	free_docks: number | null;
+	status: string;
 	timestamp: string;
 	edt_minute: number;
 	edt_hour: number;

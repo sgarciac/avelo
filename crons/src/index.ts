@@ -5,7 +5,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { getDatabase } from './db';
-import { CURRENT_AVAILABLE_R2_KEY, makeJsonSnapsot as makeJsonSnaphsot } from './snapshot';
+import { CURRENT_AVAILABLE_R2_KEY, makeJsonSnapshot } from './snapshot';
 import { reduceLog } from './utils';
 
 type StationStatus = 'PLANNED' | 'IN_SERVICE' | 'MAINTENANCE';
@@ -221,7 +221,7 @@ async function updateCurrentState(event: ScheduledEvent, env: Env, ctx: Executio
 	}
 
 	// Store the current state as a snapshot
-	await makeJsonSnaphsot<{ name: string; id: number; bikes: number | null; free_docks: number | null }[]>(env.SNAPSHOTS, db, {
+	await makeJsonSnapshot<{ name: string; id: number; bikes: number | null; free_docks: number | null }[]>(env.SNAPSHOTS, db, {
 		data: stations,
 		description: 'Current available bikes and docks',
 		key: CURRENT_AVAILABLE_R2_KEY,

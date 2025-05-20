@@ -5,6 +5,7 @@ async function current(): Promise<Response> {
     [key: number]: {
       id: number;
       bikes?: number;
+      status?: string;
       free_docks?: number;
       name: string;
       lat?: number;
@@ -43,6 +44,7 @@ async function current(): Promise<Response> {
       const station_id = parseInt(station.station_id);
       stations[station_id] = {
         ...stations[station_id],
+        status: station.status,
         bikes: station.num_bikes_available,
         free_docks: station.num_docks_available,
       };
