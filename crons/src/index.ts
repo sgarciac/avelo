@@ -72,12 +72,7 @@ async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ct
 	// Store snapshots of the states for all stations for the past 24 hours
 	const currentTime = new Date(); // utc, in cloudflare
 	const db = getDatabase(env);
-	let stationData = await db
-		.selectFrom('state')
-		.select(['station_id as id', 'station_name as name'])
-		.distinct()
-		.groupBy(['station_id', 'station_name'])
-		.execute();
+	let stationData = await db.selectFrom('state').select(['station_id as id', 'station_name as name']).distinct().execute();
 
 	let allStations: { [station: number]: { bikes: number | null; free_docks: number | null; timestamp: string }[] } = {};
 	for (let station of stationData) {
