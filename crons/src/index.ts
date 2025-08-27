@@ -75,6 +75,7 @@ async function updatePast24HoursAvailability(event: ScheduledEvent, env: Env, ct
 	let stationData = await db
 		.selectFrom('state')
 		.select(['station_id as id', 'station_name as name'])
+		.distinct()
 		.groupBy(['station_id', 'station_name'])
 		.execute();
 
@@ -117,11 +118,7 @@ async function storeYesterdayEDTAvailability(event: ScheduledEvent, env: Env, ct
 	//	console.log(edtYesterdayLabel);
 
 	const db = getDatabase(env);
-	let stationData = await db
-		.selectFrom('state')
-		.select(['station_id as id', 'station_name as name'])
-		.groupBy(['station_id', 'station_name'])
-		.execute();
+	let stationData = await db.selectFrom('state').select(['station_id as id', 'station_name as name']).distinct().execute();
 
 	let promises: Promise<void>[] = [];
 	for (let station of stationData) {
