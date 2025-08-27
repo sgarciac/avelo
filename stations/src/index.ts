@@ -1,9 +1,12 @@
 import { AutoRouter } from "itty-router";
 
+export type StationStatus = "PLANNED" | "IN_SERVICE" | "MAINTENANCE";
+
 async function current(): Promise<Response> {
   let stations: {
     [key: number]: {
       id: number;
+      status?: StationStatus;
       bikes?: number;
       status?: string;
       free_docks?: number;
