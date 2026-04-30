@@ -310,7 +310,7 @@ const availabilities: Ref<{
   }
 }> = ref({})
 
-const expandedYears = ref<Set<number>>(new Set([2025]))
+const expandedYears = ref<Set<number>>(new Set([2026]))
 
 function toggleYear(year: number, e: Event) {
   if (expandedYears.value.has(year)) {
