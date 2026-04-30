@@ -277,6 +277,10 @@ const initialDates = [
   },
   {
     from: new Date('2025-05-01T04:01:00Z'),
+    to: new Date('2025-11-01T04:01:00Z')
+  },
+  {
+    from: new Date('2026-05-01T04:01:00Z'),
     to: new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
   }
 ]
